@@ -166,7 +166,7 @@
   #ovMoreBtn:active{transform:scale(.97)}
   #ovHintBottom{position:absolute;bottom:max(40px,calc(env(safe-area-inset-bottom) + 40px));left:50%;transform:translateX(-50%);z-index:2;color:#ffffff;font-size:12px;letter-spacing:5px;font-family:var(--font-ui);font-weight:400;border:1px solid rgba(255,255,255,.7);padding:12px 26px;border-radius:10px;background:rgba(0,0,0,.35);backdrop-filter:blur(8px);animation:hintPulse 2.4s infinite;text-shadow:0 0 8px rgba(255,255,255,.6)}
   @keyframes hintPulse{0%,100%{opacity:.7}50%{opacity:1}}
-  #credits{position:fixed;inset:0;background:#000;z-index:300;display:none;align-items:center;justify-content:center;pointer-events:none}
+  #credits{position:fixed;inset:0;background:transparent;z-index:300;display:none;align-items:center;justify-content:center;pointer-events:none}
   #credits.show{display:flex}
   #creditsText{font-family:var(--font-ui);font-weight:400;font-size:clamp(20px,4vw,42px);letter-spacing:6px;color:#f0e8d8;text-align:center;opacity:0;transition:opacity 1.2s;padding:20px;line-height:1.6}
   #creditsText.show{opacity:1}
@@ -277,7 +277,7 @@
 
 <button id="flightBtn" class="flight">ПОЛЁТ</button>
 <audio id="radio" loop crossorigin="anonymous"><source src="https://ice1.somafm.com/missioncontrol-128-mp3" type="audio/mpeg"></audio>
-<audio id="mobyTrack" preload="auto" loop></audio>
+<audio id="mobyTrack" src="moby.mp3" preload="auto" loop></audio>
 
 <div id="rocketCam"><canvas id="rcCanvas"></canvas></div>
 
@@ -1418,7 +1418,7 @@ function buildFullLaunchPad() {
     for(let k=0;k<3;k++) g.add(padMesh(new THREE.BoxGeometry(0.9,0.7,0.3), PAD_MATS.lamp, [-1+k,44.6,0.7]));
     group.add(g);
   }
-  /* VAB — рядом с ракетой, на 160 м западнее, уменьшен в 20 раз */
+  /* VAB — уменьшен в 20 раз */
   const vab = new THREE.Group(); vab.position.set(-160,0,0);
   vab.add(padMesh(new THREE.BoxGeometry(6,6,7.5), PAD_MATS.white2, [0,3,0]));
   vab.add(padMesh(new THREE.BoxGeometry(6.4,0.5,7.9), PAD_MATS.dark, [0,6.1,0]));
@@ -1707,11 +1707,18 @@ document.getElementById('overlay').addEventListener('click', () => {
   document.getElementById('overlay').classList.add('hidden');
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  /* Разблокируем moby в контексте клика */
+  /* === РАЗБЛОКИРОВКА moby.mp3 — играем muted, потом ставим на паузу === */
   const mTrack = document.getElementById('mobyTrack');
   if (mTrack) {
-    mTrack.volume = 0;
-    mTrack.play().then(() => { mTrack.pause(); mTrack.currentTime = 0; mTrack.volume = 1.0; }).catch(()=>{});
+    mTrack.muted = true;
+    mTrack.play()
+      .then(() => {
+        mTrack.pause();
+        mTrack.currentTime = 0;
+        mTrack.muted = false;
+        mTrack.volume = 1.0;
+      })
+      .catch((err) => { console.log('moby unlock error:', err); mTrack.muted = false; });
   }
   if (soundEnabled) document.getElementById('radio').play().catch(()=>{});
   speak(T().speakIntro);
@@ -1857,8 +1864,9 @@ function checkCollection(cx, cz) {
         if (r) { r.pause(); r.currentTime = 0; }
         const mTrack = document.getElementById('mobyTrack');
         if (mTrack && soundEnabled) {
-          mTrack.currentTime = 0;
+          mTrack.muted = false;
           mTrack.volume = 1.0;
+          mTrack.currentTime = 0;
           mTrack.play().catch(err => console.log('moby play error:', err));
         }
       }
@@ -2133,19 +2141,16 @@ function rcLoop(now){
     if(rcSep){ const tb=rcMt-rcT_SEP; rcBoostG.forEach((b,i)=>{ const K=rcBK[i], pw=rcKfWrap(K.bb,tb); b.g.position.set(b.s*rcKfWrap(K.x,tb), rcKfWrap(K.y,tb)-rcAlt, 0); b.g.rotation.z=rcKfWrap(K.a,tb); const lg=rcKfWrap(K.leg,tb); b.legs.forEach(l=>l.rotation.z=lg); rcFlameMat[i+1].u.uPower.value=pw; rcGlowBoost[i].material.opacity=pw*.8; rcPlumeBoost[i].scale.set(1,1+pw*.2,1); if(pw>.3 && Math.random()<.6){ const w=new THREE.Vector3(); b.g.getWorldPosition(w); rcPuff(w.x,Math.max(.5,w.y-14),w.z,(Math.random()-.5)*6,-3,(Math.random()-.5)*6, 3,4.5,6,.95,.93,.9); } if(tb>34.2 && !rcLand[i]){ rcLand[i]=true; for(let k=0;k<70;k++){ const a=Math.random()*Math.PI*2,r=2+Math.random()*6; rcPuff(b.s*28+Math.cos(a)*r,.6+Math.random(),Math.sin(a)*r, Math.cos(a)*(9+Math.random()*16),1+Math.random()*4,Math.sin(a)*(9+Math.random()*16), 4+Math.random()*6,6,7+Math.random()*4,.9,.88,.84); } } }); }
     if(rcMt>=rcT_END){ rcState='done'; }
   }
-  /* Титры — через 3 сек после приземления обеих боковых ракет */
-  if(rcState==='done'){
-    const bothLanded = rcLand[0] && rcLand[1];
-    if (bothLanded && !creditsStarted) {
-      if (creditsTimer === null) creditsTimer = 3.0;
-      creditsTimer -= dt;
-      if (creditsTimer <= 0) {
-        creditsStarted = true;
-        const r = document.getElementById('radio');
-        if (r) { r.pause(); r.currentTime = 0; }
-        document.getElementById('credits').classList.add('show');
-        showCredits();
-      }
+  /* Титры — через 10 секунд ПОСЛЕ ВЗЛЁТА (после перехода в 'flight') */
+  if(rcState==='flight' && !creditsStarted){
+    if(creditsTimer === null) creditsTimer = 10.0;
+    creditsTimer -= dt;
+    if (creditsTimer <= 0) {
+      creditsStarted = true;
+      const r = document.getElementById('radio');
+      if (r) { r.pause(); r.currentTime = 0; }
+      document.getElementById('credits').classList.add('show');
+      showCredits();
     }
   }
   if (rcState==='flight' && performance.now() - rcUserZoom > 8000) {
@@ -2181,19 +2186,23 @@ function startPadSequence(){
   if (r) { r.pause(); r.currentTime = 0; }
   speak(T().speakBoarding);
 }
+/* Титры с плавным растворением */
 function showCredits(){
   const el = document.getElementById('creditsText');
   const seq = [
     { txt: 'Creator<br>Serg Shendrik', dur: 20000 },
     { txt: 'Special thanks to:', dur: 10000 },
-    { txt: 'Stanislaw Lem', dur: 10000 },
-    { txt: '©3scape Labs 2026', dur: 6000 }
+    { txt: 'Rachel Aruocha', dur: 10000 },
+    { txt: 'Stanislaw Lem', dur: 10000 }
   ];
+  const FADE_IN  = 1200;
+  const FADE_OUT = 1200;
   let i = 0;
   const step = () => {
     if (i >= seq.length) {
-      /* Титры закончились — возвращаемся в главное меню */
+      /* Все титры закончились — возвращаемся в главное меню */
       el.classList.remove('show');
+      el.style.opacity = '0';
       setTimeout(() => {
         document.getElementById('credits').classList.remove('show');
         document.getElementById('rocketCam').classList.remove('show');
@@ -2204,17 +2213,22 @@ function showCredits(){
         ov.classList.remove('hidden');
         ov.style.opacity = '1';
         document.getElementById('ovHintBottom').textContent = 'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ ЗАНОВО';
-      }, 1200);
+      }, FADE_OUT);
       return;
     }
-    el.classList.remove('show');
+    /* 1) Плавное появление текущей строки */
+    el.style.transition = `opacity ${FADE_IN}ms ease-in-out`;
+    el.style.opacity = '1';
+    el.innerHTML = seq[i].txt;
+    const dur = seq[i].dur;
+    /* 2) Через (dur - FADE_OUT) — плавное растворение */
     setTimeout(() => {
-      el.innerHTML = seq[i].txt;
-      el.classList.add('show');
-      const d = seq[i].dur;
+      el.style.transition = `opacity ${FADE_OUT}ms ease-in-out`;
+      el.style.opacity = '0';
       i++;
-      setTimeout(step, d);
-    }, 1300);
+      /* 3) Через FADE_OUT — следующая строка */
+      setTimeout(step, FADE_OUT);
+    }, Math.max(0, dur - FADE_OUT));
   };
   step();
 }
