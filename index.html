@@ -115,51 +115,40 @@
   #flightBtn{
     position:fixed;bottom:max(120px,calc(env(safe-area-inset-bottom) + 120px));right:max(20px,env(safe-area-inset-right));
     z-index:15;width:96px;height:96px;border-radius:50%;
-    background:var(--bg-strong);border:1.5px solid var(--border-strong);color:var(--text-bright);
+    background:var(--bg-strong);border:none;outline:none;color:var(--text-bright);
     font-size:15px;font-weight:400;letter-spacing:2.5px;cursor:pointer;
     backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);
     transition:all .2s;touch-action:manipulation;display:flex;align-items:center;justify-content:center;
     box-shadow:0 4px 20px rgba(0,0,0,.2);font-family:var(--font-ui);
+    -webkit-appearance:none;appearance:none;
   }
   #flightBtn:active{transform:scale(.92)}
-  #flightBtn.flight{background:rgba(216,208,192,.22);border-color:var(--text-bright);box-shadow:0 0 24px rgba(216,208,192,.35)}
-  #crewInfoWindow{
-    position:fixed;bottom:max(120px,calc(env(safe-area-inset-bottom) + 120px));left:50%;
-    transform:translateX(-50%) translateY(120%);z-index:80;background:var(--bg-strong);
-    border:1px solid var(--border-strong);border-radius:16px;padding:18px 24px;max-width:340px;
-    backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);
-    transition:transform .5s cubic-bezier(.2,.9,.3,1),opacity .5s;opacity:0;pointer-events:none;
-    box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;
-  }
-  #crewInfoWindow.show{transform:translateX(-50%) translateY(0);opacity:1}
-  #crewInfoWindow .ci-label{font-family:var(--font-mono);font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;text-align:center;margin-bottom:8px}
-  #crewInfoWindow .ci-name{font-size:20px;color:var(--text-bright);text-align:center;font-weight:400;margin-bottom:10px;letter-spacing:.5px}
-  #crewInfoWindow .ci-status{font-size:11px;color:var(--text);text-align:center;line-height:1.7;font-style:italic}
+  #flightBtn.flight{background:rgba(216,208,192,.22);box-shadow:0 0 24px rgba(216,208,192,.35)}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
   .modal.hidden{display:none}
   .modal-content{max-width:min(780px,92vw);max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,rgba(28,26,22,.98),rgba(18,16,14,.99));border:1px solid var(--border-strong);border-radius:16px;padding:28px 30px;font-size:13px;line-height:1.8;font-family:var(--font-ui);font-weight:400}
   .modal-content h3{color:var(--text-bright);letter-spacing:3px;font-size:14px;margin-bottom:22px;font-weight:400;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:14px}
   .modal-content button{background:linear-gradient(135deg,rgba(216,208,192,.9),rgba(168,159,140,.9));color:#1a1814;border:1px solid var(--border-strong);padding:13px 30px;border-radius:10px;font-weight:400;letter-spacing:1.5px;cursor:pointer;margin:16px 8px 0 0;font-size:12px;font-family:inherit}
-  #logMessage{position:fixed;top:22%;left:50%;transform:translateX(-50%);z-index:150;background:var(--bg-strong);border:1px solid var(--border-strong);border-radius:14px;padding:16px 24px;max-width:min(620px,88vw);font-style:italic;font-size:12px;line-height:1.7;pointer-events:none;transition:opacity .5s;color:var(--text);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);box-shadow:0 8px 32px rgba(0,0,0,.3);font-family:var(--font-ui);font-weight:400}
-  #logMessage.hidden{opacity:0}
-  #logMessage .prefix{color:var(--text-bright);font-style:normal;font-family:var(--font-mono);font-size:10px;letter-spacing:2px;display:block;margin-bottom:6px}
   #overlay{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;z-index:100;cursor:pointer;transition:opacity 1.2s;padding:0;text-align:center;overflow:hidden}
   #overlay.hidden{opacity:0;pointer-events:none}
   #overlayBg{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;z-index:0;transition:opacity 2s ease-in-out}
-  #overlayBg.bg1{background:radial-gradient(circle at 30% 20%, #1a2438 0%, #050810 60%, #000 100%);opacity:1}
-  #overlay::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.4) 40%,rgba(0,0,0,.55) 70%,rgba(0,0,0,.85) 100%);z-index:1;pointer-events:none}
-  #ovTopInfo{position:relative;z-index:2;width:100%;max-width:900px;padding:max(28px,calc(env(safe-area-inset-top) + 28px)) 28px 0;display:flex;flex-direction:column;align-items:center;gap:14px;color:#ffffff;text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 24px rgba(0,0,0,.7);font-family:var(--font-ui);font-weight:400}
+  #overlayBg.bg1{background-image:url('1.jpg');background-size:cover;background-position:center;opacity:1}
+  #overlay::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.45) 40%,rgba(0,0,0,.6) 70%,rgba(0,0,0,.88) 100%);z-index:1;pointer-events:none}
+  #ovTopInfo{position:relative;z-index:2;width:100%;max-width:900px;padding:max(28px,calc(env(safe-area-inset-top) + 28px)) 28px 0;display:flex;flex-direction:column;align-items:center;gap:12px;color:#ffffff;text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 24px rgba(0,0,0,.7);font-family:var(--font-ui);font-weight:400}
   #ovTopInfo h2{font-size:clamp(20px,4.2vw,38px);letter-spacing:clamp(4px,1.4vw,10px);color:#ffffff;font-weight:700;font-family:var(--font-ui);text-shadow:0 2px 20px rgba(0,0,0,.95);line-height:1.05}
   #ovTopInfo .subtitle{color:#ffffff;letter-spacing:clamp(5px,1.5vw,10px);font-size:12px;font-family:var(--font-mono);opacity:.9}
-  #ovTopInfo .goal{color:#ffffff;font-size:13px;line-height:1.85;max-width:620px;font-family:var(--font-ui);margin-top:6px;opacity:.95}
-  #ovTopInfo .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-family:var(--font-ui);font-size:12px;letter-spacing:1.5px;color:#ffffff;justify-content:center;align-items:center}
+  #ovTopInfo .goal{color:#ffffff;font-size:13px;line-height:1.85;max-width:640px;font-family:var(--font-ui);margin-top:4px;opacity:.95}
+  #ovTopInfo .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;font-family:var(--font-ui);font-size:12px;letter-spacing:1.5px;color:#ffffff;justify-content:center;align-items:center}
   #ovTopInfo .legend .li{display:flex;align-items:center;gap:10px}
   #ovTopInfo .legend .mark{display:inline-block;width:24px;text-align:center;font-weight:400;font-size:20px;line-height:1;font-family:var(--font-mono);text-shadow:0 0 10px currentColor}
   #ovTopInfo .legend .mark.red{color:#ff5a5a}
   #ovTopInfo .legend .mark.blue{color:#5a9bff}
   #ovTopInfo .legend .mark.white{color:#ffffff}
-  #ovTopInfo .quote{color:#ffffff;font-style:italic;margin-top:14px;font-size:11px;max-width:520px;line-height:1.65;opacity:.85}
-  #ovTopInfo .playerInfo{color:#ffffff;margin-top:10px;font-size:10px;font-family:var(--font-mono);letter-spacing:2px;opacity:.9}
+  #ovTopInfo .briefing{margin-top:12px;max-width:640px;text-align:left;font-family:var(--font-ui);font-size:12px;line-height:1.7;color:#e0d8c8;text-shadow:0 2px 10px rgba(0,0,0,.9);display:flex;flex-direction:column;gap:5px}
+  #ovTopInfo .briefing p{margin:0}
+  #ovTopInfo .briefing b{color:#ffffff;letter-spacing:1px}
+  #ovTopInfo .quote{color:#ffffff;font-style:italic;margin-top:12px;font-size:11px;max-width:520px;line-height:1.65;opacity:.85}
+  #ovTopInfo .playerInfo{color:#ffffff;margin-top:8px;font-size:10px;font-family:var(--font-mono);letter-spacing:2px;opacity:.9}
   #ovHintBottom{position:absolute;bottom:max(40px,calc(env(safe-area-inset-bottom) + 40px));left:50%;transform:translateX(-50%);z-index:2;color:#ffffff;font-size:12px;letter-spacing:5px;font-family:var(--font-ui);font-weight:400;border:1px solid rgba(255,255,255,.7);padding:12px 26px;border-radius:10px;background:rgba(0,0,0,.35);backdrop-filter:blur(8px);animation:hintPulse 2.4s infinite;text-shadow:0 0 8px rgba(255,255,255,.6)}
   @keyframes hintPulse{0%,100%{opacity:.7}50%{opacity:1}}
   #credits{position:fixed;inset:0;background:#000;z-index:300;display:none;align-items:center;justify-content:center;pointer-events:none}
@@ -172,9 +161,10 @@
   #rocketCam canvas:active{cursor:grabbing}
   @media (max-width:768px){
     #langBtn{top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));padding:8px 14px;font-size:11px;z-index:130}
-    #ovTopInfo{padding:max(58px,calc(env(safe-area-inset-top) + 58px)) 16px 0;gap:10px}
+    #ovTopInfo{padding:max(50px,calc(env(safe-area-inset-top) + 50px)) 14px 0;gap:8px}
     #ovTopInfo .goal{font-size:11px}
     #ovTopInfo .legend{font-size:11px;gap:12px}
+    #ovTopInfo .briefing{font-size:10.5px;line-height:1.6}
     #bottomBar .goal{font-size:10px}
     #bottomBar .statsRow{font-size:9px;gap:10px;padding:5px 12px}
     #sidePanel{padding-top:max(70px,calc(env(safe-area-inset-top) + 70px))}
@@ -226,31 +216,38 @@
   <button id="soundBtn">🔊 ЗВУК ВКЛ</button>
 </div>
 
-<div id="crewInfoWindow">
-  <div class="ci-label" id="ciLabel">◆ ЧЛЕН ЭКИПАЖА</div>
-  <div class="ci-name" id="ciName">—</div>
-  <div class="ci-status" id="ciStatus">Состояние: <b>жив</b><br>Ожидает эвакуации</div>
-</div>
-
 <div id="radarWrap"><canvas id="minimapCanvas"></canvas></div>
 <div id="crosshair"><span></span></div>
 
 <div id="overlay">
   <div id="overlayBg" class="bg1"></div>
-  <div id="overlayBg2" style="position:absolute;inset:0;background:radial-gradient(circle at 70% 30%, #2a1a38 0%, #0a0510 60%, #000 100%);z-index:0;opacity:0;transition:opacity 2s ease-in-out"></div>
+<div id="overlayBg2" style="position:absolute;inset:0;background-image:url('2.jpg');background-size:cover;background-position:center;z-index:0;opacity:0;transition:opacity 2s ease-in-out"></div>
 
   <div id="ovTopInfo">
     <h2 id="ovTitle">ЛУННАЯ ОДИССЕЯ</h2>
     <div class="subtitle" id="ovSub">П И Р К С</div>
+
     <p class="goal" id="ovGoal">
       Модуль «Пиркс» разбился. Экипаж из пяти человек — жив, но ранен.<br>
       Найдите их, пополните кислород на складах, вернитесь к ракете.
     </p>
+
     <div class="legend" id="ovLegend">
       <div class="li"><span class="mark red">+</span> <span data-ru="член экипажа" data-en="crew member">член экипажа</span></div>
       <div class="li"><span class="mark blue">+</span> <span data-ru="кислород" data-en="oxygen">кислород</span></div>
       <div class="li"><span class="mark white">+</span> <span data-ru="стартовая площадка" data-en="launch pad">стартовая площадка</span></div>
     </div>
+
+    <div class="briefing" id="ovBriefing">
+      <p><b>ЦЕЛЬ:</b> спасти пятерых членов экипажа «Пиркс» и вернуться к ракете до истечения таймера.</p>
+      <p><b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.</p>
+      <p><b>УПРАВЛЕНИЕ (моб.):</b> свайп по экрану — обзор · двойной тап — переключить ПОЛЁТ / ХОД.</p>
+      <p><b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее.</p>
+      <p><b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон до 100%.</p>
+      <p><b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Следите за бортжурналом.</p>
+      <p><b>ФИНАЛ:</b> когда все пятеро спасены, идите к ракете — миссия завершится.</p>
+    </div>
+
     <p class="quote" id="ovQuote">«Мы не ищем других. Мы ищем себя — в чужих зеркалах».<br>— Станислав Лем</p>
     <p class="playerInfo" id="playerInfo"></p>
   </div>
@@ -259,7 +256,6 @@
 </div>
 
 <div id="credits"><div id="creditsText"></div></div>
-<div id="logMessage" class="hidden"><span class="prefix" id="logPrefix"></span><span id="logText"></span></div>
 <div id="finalModal" class="modal hidden"><div class="modal-content"><h3 id="finHeader">◆ ФИНАЛ</h3><div id="finalText"></div><div id="finalChoices" style="text-align:center;margin-top:20px"></div></div></div>
 
 <button id="flightBtn" class="flight">ПОЛЁТ</button>
@@ -363,7 +359,6 @@ const I18N = {
     crewHeader:'◆ ЭКИПАЖ «ПИРКС»', navHeader:'◆ НАВИГАЦИЯ',
     crewNear:'Ближайший член экипажа', o2Near:'Ближайший склад O₂',
     music:'🎵 MISSION CONTROL',
-    ciLabel:'◆ ЧЛЕН ЭКИПАЖА', ciStatus:'Состояние: <b>жив</b><br>Ожидает эвакуации',
     ovTitle:'ЛУННАЯ ОДИССЕЯ', ovSub:'П И Р К С',
     ovGoal:'Модуль «Пиркс» разбился. Экипаж из пяти человек — жив, но ранен.<br>Найдите их, пополните кислород на складах, вернитесь к ракете.',
     ovHint:'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ',
@@ -371,17 +366,14 @@ const I18N = {
     finHeader:'◆ ФИНАЛ',
     goalRescue:'Спасти экипаж и вернуться к ракете', goalReturn:'Добраться до ракеты',
     crewStat:'ЭКИПАЖ', timeStat:'ВРЕМЯ',
-    toastSaved:'◆ СПАСЁН:', toastSavedDesc:'Экипаж поднят на борт.',
-    toastO2:'◆ СКЛАД КИСЛОРОДА', toastO2Desc:'Кислород пополнен до 100%.',
     speakIntro:'Внимание. Найдите пятерых. Пополните кислород. Вернитесь к ракете.',
     speakSaved:'Спасён ',
     speakO2:'Кислород пополнен.',
     speakFindRocket:'Экипаж в сборе. Идите к ракете.',
     speakBoarding:'Старт.',
-    finaleText:'Все пятеро в ракете. Люк закрыт. Система запущена.<br><br>Обратный отсчёт. Три. Два. Один.<br><br>Луна уходит вниз. Земля — вверх.<br><br>Вы спасли экипаж. Всех пятерых.',
-    finaleEnd:'— КОНЕЦ —', restart:'НАЧАТЬ ЗАНОВО',
     failO2:'Кислород кончился.<br><br>Миссия провалена.',
     failTime:'Ракета улетела.<br><br>Миссия провалена.',
+    restart:'НАЧАТЬ ЗАНОВО',
     regions:['Южное нагорье','Моря','Поля','Древние кратеры','Молодые ударные','Вулканические купола','Тектонические разломы','Смешанный регион'],
     crew:['Инженер Лоу','Вишневский','Пиркс-старший','Пиркс-младший','Оператор связи']
   },
@@ -391,7 +383,6 @@ const I18N = {
     crewHeader:'◆ CREW «PIRX»', navHeader:'◆ NAVIGATION',
     crewNear:'Nearest crew member', o2Near:'Nearest O₂ depot',
     music:'🎵 MISSION CONTROL',
-    ciLabel:'◆ CREW MEMBER', ciStatus:'Status: <b>alive</b><br>Awaiting evacuation',
     ovTitle:'LUNAR ODYSSEY', ovSub:'P I R X',
     ovGoal:'Module «Pirx» crashed. Five crew members — alive but wounded.<br>Find them, refill oxygen at depots, return to the rocket.',
     ovHint:'CLICK TO START',
@@ -399,17 +390,14 @@ const I18N = {
     finHeader:'◆ FINALE',
     goalRescue:'Rescue the crew and return to the rocket', goalReturn:'Reach the rocket',
     crewStat:'CREW', timeStat:'TIME',
-    toastSaved:'◆ RESCUED:', toastSavedDesc:'Crew aboard.',
-    toastO2:'◆ OXYGEN DEPOT', toastO2Desc:'Oxygen refilled to 100%.',
     speakIntro:'Attention. Find five. Refuel oxygen. Return to the rocket.',
     speakSaved:'Rescued ',
     speakO2:'Oxygen refilled.',
     speakFindRocket:'Crew complete. Head to the rocket.',
     speakBoarding:'Launch.',
-    finaleText:'All five are aboard. Hatch closed. System engaged.<br><br>Countdown. Three. Two. One.<br><br>The Moon falls away. Earth rises.<br><br>You saved the crew. All five of them.',
-    finaleEnd:'— THE END —', restart:'RESTART',
     failO2:'Oxygen depleted.<br><br>Mission failed.',
     failTime:'The rocket has left.<br><br>Mission failed.',
+    restart:'RESTART',
     regions:['Southern Highlands','Maria','Plains','Ancient Craters','Young Impacts','Volcanic Domes','Tectonic Rifts','Mixed Region'],
     crew:['Engineer Lowe','Vishnevsky','Pirx Sr.','Pirx Jr.','Comms Operator']
   }
@@ -427,7 +415,6 @@ const O2_SPOTS = [{region:0},{region:2},{region:3},{region:5},{region:6}];
 
 let crewItems = [];
 let o2Items = [];
-let infoWindowItem = null;
 
 function applyLang(lang){
   currentLang = lang;
@@ -444,8 +431,6 @@ function applyLang(lang){
   document.getElementById('lblCrewNear').textContent = t.crewNear;
   document.getElementById('lblO2Near').textContent = t.o2Near;
   document.getElementById('musicBtn2').innerHTML = t.music;
-  document.getElementById('ciLabel').textContent = t.ciLabel;
-  document.getElementById('ciStatus').innerHTML = t.ciStatus;
   document.getElementById('ovTitle').textContent = t.ovTitle;
   document.getElementById('ovSub').textContent = t.ovSub;
   document.getElementById('ovGoal').innerHTML = t.ovGoal;
@@ -458,7 +443,6 @@ function applyLang(lang){
 
   CREW_NAMES = t.crew.slice();
   crewItems.forEach((item, i) => { item.userData.name = CREW_NAMES[i]; });
-  if (infoWindowItem) document.getElementById('ciName').textContent = infoWindowItem.userData.name;
 
   REGIONS.forEach((r,i) => r.name = t.regions[i]);
   if (typeof updateCrewList === 'function') updateCrewList();
@@ -595,42 +579,6 @@ function speak(text){
 }
 
 /* ============================================================
-   ОНБОРДИНГ
-   ============================================================ */
-const ONBOARDING = {
-  ru: [
-    'Добро пожаловать на Луну. Ваша миссия — спасти пятерых членов экипажа «Пиркс».',
-    'Движение: W A S D. Обзор: мышь или свайп по экрану.',
-    'ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ и ХОДЬБУ. В полёте вы двигаетесь быстрее.',
-    'Синие метки — склады кислорода. Красные — члены экипажа. Подойдите вплотную, чтобы подобрать.',
-    'Спасите всех пятерых и вернитесь к ракете. Следите за кислородом и таймером.'
-  ],
-  en: [
-    'Welcome to the Moon. Your mission is to rescue five crew members of «Pirx».',
-    'Move: W A S D. Look: mouse or swipe on screen.',
-    'SPACE or right mouse button — toggle FLIGHT and WALK. In flight you move faster.',
-    'Blue markers — oxygen depots. Red markers — crew members. Get close to pick them up.',
-    'Rescue all five and return to the rocket. Watch your oxygen and the timer.'
-  ]
-};
-let onboardingIndex = 0;
-let onboardingTimer = null;
-function showOnboardingStep(){
-  const list = ONBOARDING[currentLang];
-  if (onboardingIndex >= list.length) return;
-  showToast('ОНБОРДИНГ', list[onboardingIndex]);
-  onboardingIndex++;
-  if (onboardingIndex < list.length) {
-    onboardingTimer = setTimeout(showOnboardingStep, 6000);
-  }
-}
-function startOnboarding(){
-  onboardingIndex = 0;
-  clearTimeout(onboardingTimer);
-  setTimeout(showOnboardingStep, 1500);
-}
-
-/* ============================================================
    МИР
    ============================================================ */
 const WORLD_SIZE = 21166, WORLD_HALF = WORLD_SIZE / 2;
@@ -650,25 +598,25 @@ skyCanvas.width = 2; skyCanvas.height = 1024;
 const skyCtx = skyCanvas.getContext('2d');
 const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 1024);
 skyGrad.addColorStop(0.00, '#000000');
-skyGrad.addColorStop(0.42, '#000000');
-skyGrad.addColorStop(0.55, '#010103');
-skyGrad.addColorStop(0.68, '#04050a');
-skyGrad.addColorStop(0.80, '#0a0c12');
-skyGrad.addColorStop(0.90, '#12141c');
-skyGrad.addColorStop(1.00, '#1a1c26');
+skyGrad.addColorStop(0.50, '#000000');
+skyGrad.addColorStop(0.60, '#020206');
+skyGrad.addColorStop(0.72, '#030409');
+skyGrad.addColorStop(0.85, '#04050a');
+skyGrad.addColorStop(0.95, '#04050a');
+skyGrad.addColorStop(1.00, '#04050a');
 skyCtx.fillStyle = skyGrad; skyCtx.fillRect(0, 0, 2, 1024);
 const skyTex = new THREE.CanvasTexture(skyCanvas);
 skyTex.colorSpace = THREE.SRGBColorSpace;
 skyTex.mapping = THREE.EquirectangularReflectionMapping;
 scene.background = skyTex;
-scene.fog = new THREE.FogExp2(0x07080d, 0.000028);
+scene.fog = new THREE.FogExp2(0x04050a, 0.000055);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.5, 400000);
 camera.position.set(-80, 2, -80);
 
 /* РЕЛЬЕФ ЛУНЫ */
 const craters = [], domes = [], faults = [];
-const CRATER_DEPTH_MULT = 5.0;
+const CRATER_DEPTH_MULT = 3.0;
 const CRATER_TYPES = {
   simple:  { depthRatio: 0.20, rimHeight: 0.18, floorFlat: 0.10, centralPeak: 0.0,  terraceAmp: 0.0,  rimWidth: 0.22 },
   medium:  { depthRatio: 0.18, rimHeight: 0.22, floorFlat: 0.25, centralPeak: 0.05, terraceAmp: 0.05, rimWidth: 0.28 },
@@ -711,12 +659,12 @@ for (let i = 0; i < craters.length; i++) {
 
 function smoothstep(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
 function fbmNoise(x, z) { let h = 0; const K1 = 2 * Math.PI / 4000;
-  h += Math.sin(x*K1)*Math.cos(z*K1)*18;
-  h += Math.sin(x*K1*2.3+1.3)*Math.cos(z*K1*2.1+2.1)*9;
-  h += Math.sin(x*K1*5.1+0.7)*Math.cos(z*K1*4.7+1.5)*4;
-  h += Math.sin(x*K1*11.3+2.7)*Math.cos(z*K1*13.1+0.3)*1.8;
-  h += Math.sin(x*K1*23.7+4.1)*Math.cos(z*K1*27.3+5.9)*0.8;
-  h += Math.sin(x*K1*53.1+7.3)*Math.cos(z*K1*61.7+3.1)*0.35;
+  h += Math.sin(x*K1)*Math.cos(z*K1)*10.8;
+  h += Math.sin(x*K1*2.3+1.3)*Math.cos(z*K1*2.1+2.1)*5.4;
+  h += Math.sin(x*K1*5.1+0.7)*Math.cos(z*K1*4.7+1.5)*2.4;
+  h += Math.sin(x*K1*11.3+2.7)*Math.cos(z*K1*13.1+0.3)*1.08;
+  h += Math.sin(x*K1*23.7+4.1)*Math.cos(z*K1*27.3+5.9)*0.48;
+  h += Math.sin(x*K1*53.1+7.3)*Math.cos(z*K1*61.7+3.1)*0.21;
   return h;
 }
 function wrappedDelta(d) { if (d > WORLD_HALF) d -= WORLD_SIZE; else if (d < -WORLD_HALF) d += WORLD_SIZE; return d; }
@@ -762,33 +710,62 @@ const rawHeights = new Float32Array(posAttr.count);
 for (let i = 0; i < posAttr.count; i++) rawHeights[i] = computeGroundH(posAttr.getX(i), posAttr.getZ(i));
 const RS = vertsPerRow;
 const smoothed = new Float32Array(posAttr.count);
+
+/* Сглаживание 7×7 */
 for (let j = 0; j < vertsPerRow; j++) for (let i = 0; i < vertsPerRow; i++) {
   let sum = 0, n = 0;
-  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+  for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++) {
     const nj = j + dj, ni = i + di;
     if (nj < 0 || nj >= vertsPerRow || ni < 0 || ni >= vertsPerRow) continue;
     sum += rawHeights[nj * RS + ni]; n++;
   }
   smoothed[j * RS + i] = sum / n;
 }
-
-/* СГЛАЖИВАНИЕ РЕЛЬЕФА ПОД КОСМОДРОМОМ */
-{
-  const padCX = 0, padCZ = 0;
-  const smoothR = 60, blendR = 90;
-  let sum = 0, cnt = 0;
-  for (let i = 0; i < posAttr.count; i++) {
-    const vx = posAttr.getX(i), vz = posAttr.getZ(i);
-    if (Math.hypot(vx - padCX, vz - padCZ) <= smoothR) { sum += smoothed[i]; cnt++; }
+/* Второй проход 5×5 */
+const smoothed2 = new Float32Array(posAttr.count);
+for (let j = 0; j < vertsPerRow; j++) for (let i = 0; i < vertsPerRow; i++) {
+  let sum = 0, n = 0;
+  for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
+    const nj = j + dj, ni = i + di;
+    if (nj < 0 || nj >= vertsPerRow || ni < 0 || ni >= vertsPerRow) continue;
+    sum += smoothed[nj * RS + ni]; n++;
   }
-  const padH = cnt > 0 ? sum / cnt : 0;
-  for (let i = 0; i < posAttr.count; i++) {
-    const vx = posAttr.getX(i), vz = posAttr.getZ(i);
-    const d = Math.hypot(vx - padCX, vz - padCZ);
-    if (d > blendR) continue;
-    const t = d <= smoothR ? 1.0 : (1 - (d - smoothR) / (blendR - smoothR));
-    const eased = t * t * (3 - 2 * t);
-    smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
+  smoothed2[j * RS + i] = sum / n;
+}
+smoothed.set(smoothed2);
+
+/* Сглаживание под космодромом */
+{
+  const PAD_CANDIDATES = [
+    { x:  1000, z:     0 },
+    { x: -1000, z:     0 },
+    { x:     0, z:  1000 },
+    { x:     0, z: -1000 },
+    { x:  1400, z:  1000 },
+    { x: -1400, z: -1000 },
+    { x:  1000, z: -1400 },
+    { x: -1000, z:  1400 },
+    { x:  2000, z:     0 },
+    { x: -2000, z:     0 }
+  ];
+  const smoothR = 200;
+  const blendR  = 260;
+  for (const C of PAD_CANDIDATES) {
+    let sum = 0, cnt = 0;
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i), vz = posAttr.getZ(i);
+      if (Math.hypot(vx - C.x, vz - C.z) <= smoothR) { sum += smoothed[i]; cnt++; }
+    }
+    if (!cnt) continue;
+    const padH = sum / cnt;
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i), vz = posAttr.getZ(i);
+      const d = Math.hypot(vx - C.x, vz - C.z);
+      if (d > blendR) continue;
+      const t = d <= smoothR ? 1.0 : (1 - (d - smoothR) / (blendR - smoothR));
+      const eased = t * t * (3 - 2 * t);
+      smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
+    }
   }
 }
 
@@ -806,8 +783,8 @@ terrainGeo.computeVertexNormals();
     r -= slope * 0.22; g -= slope * 0.22; b -= slope * 0.20;
     const vx = posAttr.getX(i), vz = posAttr.getZ(i);
     const distFromCenter = Math.sqrt(vx*vx + vz*vz);
-    const horizonFade = Math.min(1, distFromCenter / (TERRAIN_SIZE * 0.42));
-    const fadeMul = 1.0 - horizonFade * 0.75;
+    const horizonFade = Math.min(1, distFromCenter / (TERRAIN_SIZE * 0.30));
+    const fadeMul = 1.0 - horizonFade * 0.98;
     r *= fadeMul; g *= fadeMul; b *= fadeMul;
     colors[i*3] = Math.max(0, Math.min(1, r));
     colors[i*3+1] = Math.max(0, Math.min(1, g));
@@ -848,7 +825,7 @@ function sampleHeightMax(x, z, r) {
   return h;
 }
 
-/* ЗВЁЗДЫ — 15 СЛОЁВ ×2 + МЛЕЧНЫЙ ПУТЬ ×2 */
+/* ЗВЁЗДЫ — 15 СЛОЁВ ×2 + МЛЕЧНЫЙ ПУТЬ 70k */
 function createStarTex(s) {
   const c = document.createElement('canvas'); c.width = c.height = s;
   const ctx = c.getContext('2d');
@@ -1437,10 +1414,11 @@ function buildFullLaunchPad() {
     for(let k=0;k<3;k++) g.add(padMesh(new THREE.BoxGeometry(0.9,0.7,0.3), PAD_MATS.lamp, [-1+k,44.6,0.7]));
     group.add(g);
   }
-  const vab = new THREE.Group(); vab.position.set(1150,0,-1750);
-  vab.add(padMesh(new THREE.BoxGeometry(160,158,190), PAD_MATS.white2, [0,79,0]));
-  vab.add(padMesh(new THREE.BoxGeometry(170,12,200), PAD_MATS.dark, [0,162,0]));
-  vab.add(padMesh(new THREE.BoxGeometry(60,90,4), PAD_MATS.red, [0,60,96]));
+  /* VAB — рядом с ракетой, на 160 м западнее */
+  const vab = new THREE.Group(); vab.position.set(-160,0,0);
+  vab.add(padMesh(new THREE.BoxGeometry(120,120,150), PAD_MATS.white2, [0,60,0]));
+  vab.add(padMesh(new THREE.BoxGeometry(128,10,158), PAD_MATS.dark, [0,122,0]));
+  vab.add(padMesh(new THREE.BoxGeometry(45,70,4), PAD_MATS.red, [0,45,76]));
   group.add(vab);
   for(let i=0;i<3;i++){
     const a=i/3*Math.PI*2+1.1, x=Math.cos(a)*430, z=Math.sin(a)*430;
@@ -1493,8 +1471,6 @@ function createCrashSite() {
   astronaut.position.set(1.9, 0, 1.7);
   astronaut.rotation.y = Math.random() * Math.PI * 2;
   group.add(astronaut);
-
-  /* ГРАДИЕНТНАЯ СФЕРА ЭКИПАЖА — ×2 + радиальный градиент */
   const glowTex = (() => {
     const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
     const x = c.getContext('2d');
@@ -1536,7 +1512,6 @@ function createO2Cache() {
   const inner = new THREE.Group();
   inner.scale.set(SCALE, SCALE, SCALE);
   group.add(inner);
-
   const frameMat = new THREE.MeshStandardMaterial({color:0x3a4550, roughness:0.55, metalness:0.7});
   const baseFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 1.6), frameMat);
   baseFrame.position.y = 0.08; baseFrame.castShadow = true; baseFrame.receiveShadow = true;
@@ -1549,7 +1524,6 @@ function createO2Cache() {
   }
   const topFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 1.6), frameMat);
   topFrame.position.y = 3.0; topFrame.castShadow = true; inner.add(topFrame);
-
   const tankMat = new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.32, metalness: 0.65, emissive: 0x0d47a1, emissiveIntensity: 0.35 });
   const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 2.0, 32), tankMat);
   tank.position.y = 1.35; tank.castShadow = true; tank.receiveShadow = true; inner.add(tank);
@@ -1557,7 +1531,6 @@ function createO2Cache() {
   tankTop.position.y = 2.35; tankTop.castShadow = true; inner.add(tankTop);
   const tankBot = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 16, 0, Math.PI*2, Math.PI/2, Math.PI/2), tankMat);
   tankBot.position.y = 0.35; tankBot.castShadow = true; inner.add(tankBot);
-
   const bandMat = new THREE.MeshStandardMaterial({color:0x1a237e, roughness:0.6, metalness:0.4});
   for (const y of [0.85, 1.85]) {
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.045, 10, 32), bandMat);
@@ -1570,7 +1543,6 @@ function createO2Cache() {
   valveWheel.rotation.x = Math.PI/2; valveWheel.position.y = 2.75; inner.add(valveWheel);
   const vc1 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.03), valveMat); vc1.position.y = 2.75; inner.add(vc1);
   const vc2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.28), valveMat); vc2.position.y = 2.75; inner.add(vc2);
-
   const labelMat = new THREE.MeshBasicMaterial({map: o2LabelTex, transparent: true, depthWrite: false, side: THREE.DoubleSide});
   for (const [x, y, z, ry] of [[0, 1.35, 0.64, 0], [0, 1.35, -0.64, Math.PI], [0.64, 1.35, 0, Math.PI/2], [-0.64, 1.35, 0, -Math.PI/2]]) {
     const l = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), labelMat);
@@ -1586,8 +1558,6 @@ function createO2Cache() {
   const indicatorMat = new THREE.MeshBasicMaterial({color:0x4fc3f7});
   const indicator = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), indicatorMat);
   indicator.position.set(0.7, 2.85, 0.4); inner.add(indicator);
-
-  /* ГРАДИЕНТНЫЕ СФЕРЫ O₂ — ×2 + радиальный градиент */
   const o2GlowTex = (() => {
     const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
     const x = c.getContext('2d');
@@ -1678,8 +1648,7 @@ function spawnObjects() {
     o2Items.push(mesh);
   });
 
-  /* Космодром — на плоском месте, посадка по минимуму высоты */
-  const padSpot = findFlatSpot(0, 0, 400);
+  const padSpot = findFlatSpot(1000, 0, 200);
   let hSum = 0, hCount = 0, hMin = Infinity;
   for (let dx = -45; dx <= 45; dx += 5) {
     for (let dz = -45; dz <= 45; dz += 5) {
@@ -1700,9 +1669,7 @@ function spawnObjects() {
 
   window.launchPadPosition = new THREE.Vector3(padSpot.x, padY, padSpot.z);
 }
-spawnObjects();
-
-/* ============================================================
+spawnObjects();/* ============================================================
    ИГРОВОЕ СОСТОЯНИЕ
    ============================================================ */
 let crewSaved = 0, oxygen = 100, missionTime = 72 * 60;
@@ -1712,20 +1679,7 @@ const keys = {};
 let yaw = -Math.PI/4, pitch = 0;
 let velocityY = 0, onGround = true;
 let flightMode = true;
-const infoWindowClosed = new Set();
 
-function showCrewInfoWindow(item) {
-  const id = item.userData.id;
-  if (infoWindowClosed.has(id)) return;
-  document.getElementById('ciName').textContent = item.userData.name;
-  document.getElementById('crewInfoWindow').classList.add('show');
-  infoWindowItem = item;
-}
-function hideCrewInfoWindow() {
-  document.getElementById('crewInfoWindow').classList.remove('show');
-  if (infoWindowItem) infoWindowClosed.add(infoWindowItem.userData.id);
-  infoWindowItem = null;
-}
 function updateMoveState() {
   const btn = document.getElementById('flightBtn');
   btn.textContent = flightMode ? T().flight : T().walk;
@@ -1747,7 +1701,6 @@ document.getElementById('overlay').addEventListener('click', () => {
   if (soundEnabled) document.getElementById('radio').play().catch(()=>{});
   speak(T().speakIntro);
   startInterstitialAds();
-  startOnboarding();
 });
 renderer.domElement.addEventListener('mousedown', e => {
   e.preventDefault();
@@ -1858,44 +1811,23 @@ function updateMinimap() {
   if (crewSaved >= 5) { const p = project(rocket.position.x, rocket.position.z); if (p.inside) drawCross(p.x, p.y, padColor, 5); }
 }
 
-/* УВЕДОМЛЕНИЯ / СБОР / HUD */
-let logTimeout = null;
-function showToast(prefix, text) {
-  const el = document.getElementById('logMessage');
-  document.getElementById('logPrefix').textContent = prefix;
-  document.getElementById('logText').textContent = text;
-  el.classList.remove('hidden'); el.style.opacity = '1';
-  clearTimeout(logTimeout);
-  logTimeout = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.classList.add('hidden'), 500); }, 5000);
-}
-
+/* СБОР / HUD */
 function checkCollection(cx, cz) {
-  let anyCrewClose = false;
   for (const item of crewItems) {
     if (item.userData.collected) continue;
     const dx = wrappedDelta(cx - item.position.x);
     const dz = wrappedDelta(cz - item.position.z);
     const d2 = dx*dx + dz*dz;
-    if (d2 < 900 && d2 > 9) {
-      if (!infoWindowItem && !infoWindowClosed.has(item.userData.id)) {
-        showCrewInfoWindow(item);
-      }
-      anyCrewClose = true;
-    }
     if (d2 <= 9) {
-      hideCrewInfoWindow();
       item.userData.collected = true;
       item.visible = false;
       crewSaved++;
       crewStatuses[item.userData.id] = 1;
       playCrewSaved();
       speak(T().speakSaved + item.userData.name + '.');
-      showToast(T().toastSaved + ' ' + item.userData.name, T().toastSavedDesc);
       updateCrewList();
     }
   }
-  if (!anyCrewClose && infoWindowItem) hideCrewInfoWindow();
-
   for (const item of o2Items) {
     if (item.userData.used) continue;
     const dx = wrappedDelta(cx - item.position.x);
@@ -1906,7 +1838,6 @@ function checkCollection(cx, cz) {
       oxygen = 100;
       playO2Pickup();
       speak(T().speakO2);
-      showToast(T().toastO2, T().toastO2Desc);
     }
   }
 }
@@ -1967,7 +1898,9 @@ function triggerFailure(reason) {
 }
 window.restartGame = () => showRewardedAd().then(() => location.reload());
 
-/* ФИНАЛЬНАЯ СЦЕНА */
+/* ============================================================
+   ФИНАЛЬНАЯ СЦЕНА
+   ============================================================ */
 const rcCanvas = document.getElementById('rcCanvas');
 const rcRenderer = new THREE.WebGLRenderer({canvas:rcCanvas, antialias:true, powerPreference:'high-performance'});
 rcRenderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -2095,9 +2028,13 @@ rcTel.add(rcTruss(4.2,62,4.2,14,.30,rcM.white2)); rcTel.add(rcMesh(new THREE.Box
 for(const y of [16,32,48]) rcTel.add(rcMesh(new THREE.BoxGeometry(5,.6,5),rcM.dark,[0,y,0]));
 rcTel.add(rcMesh(new THREE.BoxGeometry(1.4,10,1.4),rcM.dark,[0,55,-3.2])); rcTel.add(rcMesh(new THREE.BoxGeometry(6.4,1.5,1.3),rcM.white,[-4.2,50.5,1.2])); rcTel.add(rcMesh(new THREE.SphereGeometry(.55,12,10),rcM.beacon,[0,65.4,0]));
 
+/* VAB — рядом с ракетой, на 160 м западнее */
+const rcVAB=new THREE.Group(); rcVAB.position.set(-160,rcGY,0); rcScene.add(rcVAB);
+rcVAB.add(rcMesh(new THREE.BoxGeometry(120,120,150),rcM.white2,[0,60,0]));
+rcVAB.add(rcMesh(new THREE.BoxGeometry(128,10,158),rcM.dark,[0,122,0]));
+rcVAB.add(rcMesh(new THREE.BoxGeometry(45,70,4),rcM.red,[0,45,76]));
+
 for(let i=0;i<4;i++){ const a=i/4*Math.PI*2+.6,x=Math.cos(a)*54,z=Math.sin(a)*54; const g=new THREE.Group(); g.position.set(x,rcGY,z); rcScene.add(g); g.add(rcMesh(new THREE.CylinderGeometry(.35,.7,44,10),rcM.steel,[0,22,0])); g.add(rcMesh(new THREE.BoxGeometry(3.2,1.6,1.2),rcM.dark,[0,44.6,0])); for(let k=0;k<3;k++) g.add(rcMesh(new THREE.BoxGeometry(.9,.7,.3),rcM.lamp,[-1+k,44.6,.7])); }
-const rcVAB=new THREE.Group(); rcVAB.position.set(1150,rcGY,-1750); rcScene.add(rcVAB);
-rcVAB.add(rcMesh(new THREE.BoxGeometry(160,158,190),rcM.white2,[0,79,0])); rcVAB.add(rcMesh(new THREE.BoxGeometry(170,12,200),rcM.dark,[0,162,0])); rcVAB.add(rcMesh(new THREE.BoxGeometry(60,90,4),rcM.red,[0,60,96]));
 for(let i=0;i<3;i++){ const a=i/3*Math.PI*2+1.1,x=Math.cos(a)*430,z=Math.sin(a)*430; const g=new THREE.Group(); g.position.set(x,rcGY,z); rcScene.add(g); g.add(rcMesh(new THREE.CylinderGeometry(.5,2.6,150,8),rcM.steel,[0,75,0])); g.add(rcMesh(new THREE.CylinderGeometry(.2,.5,14,6),rcM.steel,[0,157,0])); g.add(rcMesh(new THREE.SphereGeometry(1.1,10,8),rcM.beacon,[0,164,0])); }
 
 const rcN=1400;
@@ -2196,9 +2133,11 @@ function startPadSequence(){
   if (mTrack && soundEnabled) { mTrack.currentTime = 0; mTrack.volume = 1.0; mTrack.play().catch(()=>{}); }
   speak(T().speakBoarding);
 }
-function showCredits(){ const el = document.getElementById('creditsText'); const seq = [ { txt: 'Creator<br>Serg Shendrik', dur: 20000 }, { txt: 'Special thanks to:', dur: 10000 }, { txt: 'Rachel Shendrik', dur: 10000 }, { txt: 'Stanislaw Lem', dur: 10000 }, { txt: '©3scape Labs 2026', dur: 999999 } ]; let i = 0; const step = () => { if (i >= seq.length) return; el.classList.remove('show'); setTimeout(() => { el.innerHTML = seq[i].txt; el.classList.add('show'); const d = seq[i].dur; i++; setTimeout(step, d); }, 1300); }; step(); }
+function showCredits(){ const el = document.getElementById('creditsText'); const seq = [ { txt: 'Special thanks to:', dur: 10000 }, { txt: 'Rachel Shendrik', dur: 10000 }, { txt: 'Stanislaw Lem', dur: 10000 }, { txt: '©3scape Labs 2026', dur: 999999 } ]; let i = 0; const step = () => { if (i >= seq.length) return; el.classList.remove('show'); setTimeout(() => { el.innerHTML = seq[i].txt; el.classList.add('show'); const d = seq[i].dur; i++; setTimeout(step, d); }, 1300); }; step(); }
 
-/* ОСНОВНОЙ ЦИКЛ */
+/* ============================================================
+   ОСНОВНОЙ ЦИКЛ
+   ============================================================ */
 const LUNAR_GRAVITY = 1.62, JUMP_VELOCITY = 20;
 const BASE_SPEED = 12, FLIGHT_MULTIPLIER = 50;
 const AIR_CONTROL = 0.35, GROUND_FRICTION = 0.88, AIR_FRICTION = 0.995;
