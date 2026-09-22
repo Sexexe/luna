@@ -255,15 +255,7 @@
 
     <button id="ovMoreBtn">ПОДРОБНЕЕ</button>
 
-    <div class="briefing hidden" id="ovBriefing">
-      <p><b>ЦЕЛЬ:</b> спасти пятерых членов экипажа «Пиркс» и вернуться к ракете до истечения таймера.</p>
-      <p><b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.</p>
-      <p><b>УПРАВЛЕНИЕ (моб.):</b> свайп по экрану — обзор · двойной тап — переключить ПОЛЁТ / ХОД.</p>
-      <p><b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее.</p>
-      <p><b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон до 100%.</p>
-      <p><b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Следите за бортжурналом.</p>
-      <p><b>ФИНАЛ:</b> когда все пятеро спасены, идите к ракете — миссия завершится.</p>
-    </div>
+    <div class="briefing hidden" id="ovBriefing"></div>
 
     <p class="quote" id="ovQuote">«Мы не ищем других. Мы ищем себя — в чужих зеркалах».<br>— Станислав Лем</p>
     <p class="playerInfo" id="playerInfo"></p>
@@ -336,9 +328,15 @@ function pauseAllAudio(){
 }
 function resumeAllAudio(){
   if (!soundEnabled) return;
+  if (mobyStarted) return;
+  if (typeof creditsStarted !== 'undefined' && creditsStarted) return;
+  if (typeof missionComplete !== 'undefined' && missionComplete) return;
   const r = document.getElementById('radio');
-  if (r && r.paused && !document.getElementById('rocketCam').classList.contains('show') && !mobyStarted)
+  if (r && r.paused && !document.getElementById('rocketCam').classList.contains('show')) {
+    r.muted = false;
+    r.volume = 1.0;
     r.play().catch(()=>{});
+  }
 }
 if (typeof vkBridge !== 'undefined') {
   try {
@@ -381,6 +379,14 @@ const I18N = {
     ovGoal:'Модуль «Пиркс» разбился. Экипаж из пяти человек — жив, но ранен.<br>Найдите их, пополните кислород на складах, вернитесь к ракете.',
     ovHint:'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ',
     ovQuote:'«Мы не ищем других. Мы ищем себя — в чужих зеркалах».<br>— Станислав Лем',
+    ovMore:'ПОДРОБНЕЕ', ovLess:'СВЕРНУТЬ',
+    brGoal:'<b>ЦЕЛЬ:</b> спасти пятерых членов экипажа «Пиркс» и вернуться к ракете до истечения таймера.',
+    brPC:'<b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.',
+    brMobile:'<b>УПРАВЛЕНИЕ (моб.):</b> свайп по экрану — обзор · двойной тап — переключить ПОЛЁТ / ХОД.',
+    brWarn:'<b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее.',
+    brO2:'<b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон до 100%.',
+    brCrew:'<b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Следите за бортжурналом.',
+    brFinal:'<b>ФИНАЛ:</b> когда все пятеро спасены, идите к ракете — миссия завершится.',
     finHeader:'◆ ФИНАЛ',
     goalRescue:'Спасти экипаж и вернуться к ракете', goalReturn:'Добраться до ракеты',
     crewStat:'ЭКИПАЖ', timeStat:'ВРЕМЯ',
@@ -405,6 +411,14 @@ const I18N = {
     ovGoal:'Module «Pirx» crashed. Five crew members — alive but wounded.<br>Find them, refill oxygen at depots, return to the rocket.',
     ovHint:'CLICK TO START',
     ovQuote:'«We do not seek others. We seek ourselves — in others\' mirrors».<br>— Stanisław Lem',
+    ovMore:'MORE', ovLess:'COLLAPSE',
+    brGoal:'<b>GOAL:</b> rescue all five crew members of «Pirx» and return to the rocket before the timer runs out.',
+    brPC:'<b>CONTROLS (PC):</b> W A S D — move · mouse — look · SPACE or right mouse button — toggle FLIGHT / WALK · R — jump · SHIFT — sprint.',
+    brMobile:'<b>CONTROLS (mobile):</b> swipe — look · double tap — toggle FLIGHT / WALK.',
+    brWarn:'<b>WARNING:</b> in FLIGHT mode you move faster, but oxygen drains twice as fast.',
+    brO2:'<b>OXYGEN:</b> blue markers — O₂ depots. Get close to refill the tank to 100%.',
+    brCrew:'<b>CREW:</b> red markers — crew members. Get close to pick them up. Watch the flight log.',
+    brFinal:'<b>FINALE:</b> when all five are rescued, head to the rocket — the mission will end.',
     finHeader:'◆ FINALE',
     goalRescue:'Rescue the crew and return to the rocket', goalReturn:'Reach the rocket',
     crewStat:'CREW', timeStat:'TIME',
@@ -454,6 +468,20 @@ function applyLang(lang){
   document.getElementById('ovGoal').innerHTML = t.ovGoal;
   document.getElementById('ovQuote').innerHTML = t.ovQuote;
   document.getElementById('ovHintBottom').textContent = t.ovHint;
+  /* Кнопка ПОДРОБНЕЕ / СВЕРНУТЬ — учитываем текущее состояние */
+  const briefEl = document.getElementById('ovBriefing');
+  const moreBtn = document.getElementById('ovMoreBtn');
+  const isHidden = briefEl.classList.contains('hidden');
+  moreBtn.textContent = isHidden ? t.ovMore : t.ovLess;
+  /* Наполняем briefing переводами */
+  briefEl.innerHTML =
+    `<p>${t.brGoal}</p>` +
+    `<p>${t.brPC}</p>` +
+    `<p>${t.brMobile}</p>` +
+    `<p>${t.brWarn}</p>` +
+    `<p>${t.brO2}</p>` +
+    `<p>${t.brCrew}</p>` +
+    `<p>${t.brFinal}</p>`;
   document.getElementById('finHeader').textContent = t.finHeader;
   document.getElementById('lblCrewStat').childNodes[0].textContent = t.crewStat + ' ';
   document.getElementById('lblTimeStat').childNodes[0].textContent = t.timeStat + ' ';
@@ -1698,6 +1726,9 @@ function toggleFlight() {
 addEventListener('keydown', e => keys[e.code] = true);
 addEventListener('keyup', e => keys[e.code] = false);
 
+/* ============================================================
+   КЛИК ПО ОВЕРЛЕЮ — запуск игры / рестарт
+   ============================================================ */
 document.getElementById('overlay').addEventListener('click', () => {
   /* Если финальная сцена уже проиграна — перезагружаем игру */
   if (creditsStarted || missionComplete) {
@@ -1707,7 +1738,8 @@ document.getElementById('overlay').addEventListener('click', () => {
   document.getElementById('overlay').classList.add('hidden');
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  /* === РАЗБЛОКИРОВКА moby.mp3 — играем muted, потом ставим на паузу === */
+
+  /* === РАЗБЛОКИРОВКА moby.mp3 через muted-воспроизведение === */
   const mTrack = document.getElementById('mobyTrack');
   if (mTrack) {
     mTrack.muted = true;
@@ -1720,10 +1752,22 @@ document.getElementById('overlay').addEventListener('click', () => {
       })
       .catch((err) => { console.log('moby unlock error:', err); mTrack.muted = false; });
   }
-  if (soundEnabled) document.getElementById('radio').play().catch(()=>{});
+
+  /* === ЗАПУСК РАДИО — всегда в контексте клика, даже если звук был выключен === */
+  const rTrack = document.getElementById('radio');
+  if (rTrack) {
+    rTrack.volume = soundEnabled ? 1.0 : 0;
+    rTrack.muted = !soundEnabled;
+    try { rTrack.load(); } catch(e) {}
+    rTrack.play().then(() => {
+      if (soundEnabled) { rTrack.muted = false; rTrack.volume = 1.0; }
+    }).catch(err => console.log('radio play error:', err));
+  }
+
   speak(T().speakIntro);
   startInterstitialAds();
 });
+
 renderer.domElement.addEventListener('mousedown', e => {
   e.preventDefault();
   if (e.button === 2) { toggleFlight(); return; }
@@ -1753,13 +1797,13 @@ function togglePanel(force) { panelOpen = force !== undefined ? force : !panelOp
 hamburger.addEventListener('click', () => togglePanel());
 document.getElementById('panelClose').addEventListener('click', () => togglePanel(false));
 
-/* Кнопка ПОДРОБНЕЕ */
+/* Кнопка ПОДРОБНЕЕ / MORE — с учётом текущего языка */
 document.getElementById('ovMoreBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   const b = document.getElementById('ovBriefing');
   const btn = document.getElementById('ovMoreBtn');
   const isHidden = b.classList.toggle('hidden');
-  btn.textContent = isHidden ? 'ПОДРОБНЕЕ' : 'СВЕРНУТЬ';
+  btn.textContent = isHidden ? T().ovMore : T().ovLess;
 });
 
 /* МИНИ-КАРТА */
@@ -2141,7 +2185,7 @@ function rcLoop(now){
     if(rcSep){ const tb=rcMt-rcT_SEP; rcBoostG.forEach((b,i)=>{ const K=rcBK[i], pw=rcKfWrap(K.bb,tb); b.g.position.set(b.s*rcKfWrap(K.x,tb), rcKfWrap(K.y,tb)-rcAlt, 0); b.g.rotation.z=rcKfWrap(K.a,tb); const lg=rcKfWrap(K.leg,tb); b.legs.forEach(l=>l.rotation.z=lg); rcFlameMat[i+1].u.uPower.value=pw; rcGlowBoost[i].material.opacity=pw*.8; rcPlumeBoost[i].scale.set(1,1+pw*.2,1); if(pw>.3 && Math.random()<.6){ const w=new THREE.Vector3(); b.g.getWorldPosition(w); rcPuff(w.x,Math.max(.5,w.y-14),w.z,(Math.random()-.5)*6,-3,(Math.random()-.5)*6, 3,4.5,6,.95,.93,.9); } if(tb>34.2 && !rcLand[i]){ rcLand[i]=true; for(let k=0;k<70;k++){ const a=Math.random()*Math.PI*2,r=2+Math.random()*6; rcPuff(b.s*28+Math.cos(a)*r,.6+Math.random(),Math.sin(a)*r, Math.cos(a)*(9+Math.random()*16),1+Math.random()*4,Math.sin(a)*(9+Math.random()*16), 4+Math.random()*6,6,7+Math.random()*4,.9,.88,.84); } } }); }
     if(rcMt>=rcT_END){ rcState='done'; }
   }
-  /* Титры — через 10 секунд ПОСЛЕ ВЗЛЁТА (после перехода в 'flight') */
+  /* Титры — через 10 сек ПОСЛЕ ВЗЛЁТА (после перехода в 'flight') */
   if(rcState==='flight' && !creditsStarted){
     if(creditsTimer === null) creditsTimer = 10.0;
     creditsTimer -= dt;
@@ -2186,6 +2230,7 @@ function startPadSequence(){
   if (r) { r.pause(); r.currentTime = 0; }
   speak(T().speakBoarding);
 }
+
 /* Титры с плавным растворением */
 function showCredits(){
   const el = document.getElementById('creditsText');
@@ -2200,12 +2245,15 @@ function showCredits(){
   let i = 0;
   const step = () => {
     if (i >= seq.length) {
-      /* Все титры закончились — возвращаемся в главное меню */
       el.classList.remove('show');
       el.style.opacity = '0';
       setTimeout(() => {
         document.getElementById('credits').classList.remove('show');
         document.getElementById('rocketCam').classList.remove('show');
+        /* Останавливаем moby и сбрасываем флаг — иначе радио не восстановится */
+        const mTrack = document.getElementById('mobyTrack');
+        if (mTrack) { mTrack.pause(); mTrack.currentTime = 0; }
+        mobyStarted = false;
         rcReset();
         creditsStarted = false;
         creditsTimer = null;
@@ -2216,17 +2264,14 @@ function showCredits(){
       }, FADE_OUT);
       return;
     }
-    /* 1) Плавное появление текущей строки */
     el.style.transition = `opacity ${FADE_IN}ms ease-in-out`;
     el.style.opacity = '1';
     el.innerHTML = seq[i].txt;
     const dur = seq[i].dur;
-    /* 2) Через (dur - FADE_OUT) — плавное растворение */
     setTimeout(() => {
       el.style.transition = `opacity ${FADE_OUT}ms ease-in-out`;
       el.style.opacity = '0';
       i++;
-      /* 3) Через FADE_OUT — следующая строка */
       setTimeout(step, FADE_OUT);
     }, Math.max(0, dur - FADE_OUT));
   };
