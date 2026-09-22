@@ -278,6 +278,13 @@
    VK BRIDGE + ФОН + МОНЕТИЗАЦИЯ
    ============================================================ */
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+/* Принудительная остановка moby при загрузке страницы */
+window.addEventListener('load', () => {
+  const m = document.getElementById('mobyTrack');
+  if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
+  const r = document.getElementById('radio');
+  if (r) { r.volume = 1.0; r.muted = false; }
+});
 let vkBridgeReady = false, myVkId = null, myVkName = 'Гость';
 
 (async () => {
@@ -352,6 +359,30 @@ document.addEventListener('visibilitychange', () => {
 
 let soundEnabled = true;
 let mobyStarted = false;
+
+/* ============================================================
+   ПЕРЕКЛЮЧЕНИЕ АУДИО: РАДИО ↔ MOBY
+   ============================================================ */
+function switchToMoby() {
+  const r = document.getElementById('radio');
+  const m = document.getElementById('mobyTrack');
+  if (r) { r.volume = 0; r.muted = true; r.pause(); r.currentTime = 0; }
+  if (m) {
+    m.muted = false;
+    m.volume = soundEnabled ? 1.0 : 0;
+    m.currentTime = 0;
+    m.play().catch(err => console.log('moby play error:', err));
+  }
+  mobyStarted = true;
+}
+function switchToRadio() {
+  const r = document.getElementById('radio');
+  const m = document.getElementById('mobyTrack');
+  if (m) { m.volume = 0; m.muted = true; m.pause(); m.currentTime = 0; }
+  mobyStarted = false;
+  if (r && soundEnabled) { r.muted = false; r.volume = 1.0; r.play().catch(()=>{}); }
+}
+
 const soundBtnEl = document.getElementById('soundBtn');
 function refreshSoundBtn(){
   soundBtnEl.textContent = soundEnabled ? '🔊 ЗВУК ВКЛ' : '🔇 ЗВУК ВЫКЛ';
@@ -394,7 +425,8 @@ const I18N = {
     speakSaved:'Спасён ',
     speakO2:'Кислород пополнен.',
     speakFindRocket:'Экипаж в сборе. Идите к ракете.',
-    speakBoarding:'Старт.',
+    speakBoarding:'Поднимитесь в ракету.',
+    speakLaunch:'Старт!',
     failO2:'Кислород кончился.<br><br>Миссия провалена.',
     failTime:'Ракета улетела.<br><br>Миссия провалена.',
     restart:'НАЧАТЬ ЗАНОВО',
@@ -426,7 +458,8 @@ const I18N = {
     speakSaved:'Rescued ',
     speakO2:'Oxygen refilled.',
     speakFindRocket:'Crew complete. Head to the rocket.',
-    speakBoarding:'Launch.',
+    speakBoarding:'Board the rocket.',
+    speakLaunch:'Launch!',
     failO2:'Oxygen depleted.<br><br>Mission failed.',
     failTime:'The rocket has left.<br><br>Mission failed.',
     restart:'RESTART',
@@ -1498,7 +1531,6 @@ function createCrashSite() {
   /* ═══════════════════════════════════════════════════════════
      МАЯК-МЕРЦАНИЕ (стиль №6)
      ═══════════════════════════════════════════════════════════ */
-  // Ножка (маленький цилиндр)
   const beaconBase = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.09, 0.25, 12),
     new THREE.MeshStandardMaterial({color:0x2a2a2a, roughness:0.7, metalness:0.4})
@@ -1507,16 +1539,14 @@ function createCrashSite() {
   beaconBase.castShadow = true;
   group.add(beaconBase);
 
-  // Ядро — маленькая яркая сфера
   const beaconLight = new THREE.Mesh(
     new THREE.SphereGeometry(0.07, 16, 16),
     new THREE.MeshBasicMaterial({color:0xff2020})
   );
   beaconLight.position.set(1.1, 2.10, -0.6);
-  beaconLight.userData.isCrewLight = true;   // ядро (для мигания)
+  beaconLight.userData.isCrewLight = true;
   group.add(beaconLight);
 
-  // Ореол вокруг ядра — большая прозрачная сфера
   const beaconGlow = new THREE.Mesh(
     new THREE.SphereGeometry(0.30, 16, 16),
     new THREE.MeshBasicMaterial({
@@ -1528,10 +1558,9 @@ function createCrashSite() {
     })
   );
   beaconGlow.position.set(1.1, 2.10, -0.6);
-  beaconGlow.userData.isCrewGlowLight = true;   // ореол (для мерцания)
+  beaconGlow.userData.isCrewGlowLight = true;
   group.add(beaconGlow);
 
-  // Второй ореол — внешний, ещё больше
   const beaconHalo = new THREE.Mesh(
     new THREE.SphereGeometry(0.55, 16, 16),
     new THREE.MeshBasicMaterial({
@@ -1543,7 +1572,7 @@ function createCrashSite() {
     })
   );
   beaconHalo.position.set(1.1, 2.10, -0.6);
-  beaconHalo.userData.isCrewHaloLight = true;   // внешний ореол
+  beaconHalo.userData.isCrewHaloLight = true;
   group.add(beaconHalo);
   /* ═══════════════════════════════════════════════════════════ */
   const astronaut = createAstronaut();
@@ -1785,18 +1814,18 @@ document.getElementById('overlay').addEventListener('click', () => {
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  /* === РАЗБЛОКИРОВКА moby.mp3 — muted play → pause === */
+  /* === РАЗБЛОКИРОВКА moby.mp3 — громкость 0, играет тихо, потом поднимем === */
   const mTrack = document.getElementById('mobyTrack');
   if (mTrack) {
-    mTrack.muted = true;
+    mTrack.muted = false;
+    mTrack.volume = 0;
     mTrack.play()
       .then(() => {
-        mTrack.pause();
-        mTrack.currentTime = 0;
-        mTrack.muted = false;
-        mTrack.volume = 1.0;
+        console.log('moby unlocked at volume 0');
       })
-      .catch((err) => { console.log('moby unlock error:', err); mTrack.muted = false; });
+      .catch((err) => {
+        console.log('moby unlock error:', err);
+      });
   }
 
   /* === РАДИО — без load(), просто play === */
@@ -1807,6 +1836,7 @@ document.getElementById('overlay').addEventListener('click', () => {
     rTrack.play().catch(err => console.log('radio play error:', err));
   }
 
+  switchToRadio();
   speak(T().speakIntro);
   startInterstitialAds();
 });
@@ -1944,19 +1974,9 @@ function checkCollection(cx, cz) {
       playCrewSaved();
       speak(T().speakSaved + item.userData.name + '.');
       updateCrewList();
-      /* Как только спасены все пятеро — стоп радио, старт moby.mp3 */
+      /* Как только спасены все пятеро — радио на 0, включаем moby */
       if (crewSaved >= 5 && !mobyStarted) {
-        mobyStarted = true;
-        const r = document.getElementById('radio');
-        if (r) { r.pause(); r.currentTime = 0; }
-        const mTrack = document.getElementById('mobyTrack');
-        if (mTrack && soundEnabled) {
-          mTrack.muted = false;
-          mTrack.volume = 1.0;
-          mTrack.currentTime = 0;
-          try { mTrack.load(); } catch(e) {}
-          mTrack.play().catch(err => console.log('moby play error:', err));
-        }
+        switchToMoby();
       }
     }
   }
@@ -2028,7 +2048,10 @@ function triggerFailure(reason) {
   document.getElementById('finalText').innerHTML = `<p style="font-style:italic;color:#a89f8c;line-height:1.9;font-size:13px">${text}</p>`;
   document.getElementById('finalChoices').innerHTML = `<button onclick="restartGame()">${T().restart}</button>`;
 }
-window.restartGame = () => showRewardedAd().then(() => location.reload());
+window.restartGame = () => {
+  switchToRadio();
+  showRewardedAd().then(() => location.reload());
+};
 
 /* ============================================================
    ФИНАЛЬНАЯ СЦЕНА
@@ -2221,7 +2244,7 @@ function rcLoop(now){
   rcM.beacon.color.setRGB(bl*1.2,bl*.16,bl*.08);
 
   if(rcState==='idle' && Math.random()<.55){ const a=Math.random()*Math.PI*2; rcPuff(Math.cos(a)*2.4,1.6+Math.random()*2,Math.sin(a)*2.4, Math.cos(a)*2.2,.6+Math.random(),Math.sin(a)*2.2,.9,1.6,4.5,.86,.88,.92); }
-  if (padState === 'boarding') { padTimer += dt; if (padTimer >= PAD_BOARD_DELAY) { padState = 'countdown'; rcState = 'count'; rcMt = -rcT_COUNT; } }
+  /* Логика boarding теперь обрабатывается в startPadSequence() */
   if(rcState==='count'){ rcMt+=dt; if(rcMt>=rcT_IGN && !rcIgn){ rcIgn=true; rcShake=1; rcFlameMat.forEach(f=>f.u.uPower.value=.001); if(rcSndOn) rcSetRumble(.5,220); for(let i=0;i<160;i++){ const a=Math.random()*Math.PI*2,r=3+Math.random()*8; rcPuff(Math.cos(a)*r,.4+Math.random()*2,Math.sin(a)*r, Math.cos(a)*(14+Math.random()*22),1+Math.random()*5,Math.sin(a)*(14+Math.random()*22), 5+Math.random()*7,5.5,7+Math.random()*6,.92,.9,.86); } } if(rcMt>=rcT_REL){ rcState='flight'; rcMt=0; rcIgn=true; rcClamps.forEach(c=>c.rotation.z=-1.1); } }
   if(rcIgn){ const p=Math.min(1,(rcState==='count'?Math.max(0,rcMt)+3:rcMt*2.4)/1.6); rcFlameMat.forEach((f,i)=>{ if(i===0) f.u.uPower.value=p; }); rcBaseGlow.material.opacity=p*.85; if(rcShake>0) rcShake=Math.max(0,rcShake-dt*.55); if(Math.random()<p*.9){ for(let i=0;i<3;i++){ const a=Math.random()*Math.PI*2,r=2+Math.random()*7; rcPuff(Math.cos(a)*r,.2+Math.random(),Math.sin(a)*r, Math.cos(a)*(10+Math.random()*26),1.5+Math.random()*7,Math.sin(a)*(10+Math.random()*26), 4+Math.random()*8,7.5,8+Math.random()*7,.95,.92,.87); } } }
   if(rcState==='flight'){ rcMt+=dt; const tr=rcTraj(Math.max(0,rcMt)); rcAlt=tr.h; rcVel=tr.v; rcRocket.position.y=rcAlt; const thin=1+Math.min(rcAlt/5200,2.6); rcPlumeCore.scale.set(1+(thin-1)*.55,thin,1+(thin-1)*.55); const pf=Math.min(1,rcMt*2.2); rcFlameMat[0].u.uPower.value=pf; rcBaseGlow.material.opacity=pf*.85; if(rcSndOn){ const d=Math.max(0,1-rcAlt/3200); rcSetRumble(.62*d+.05,120+260*d); } rcShake=Math.max(0,Math.min(1,6/(rcAlt+8)))*.9; if(rcMt<rcT_SEP && Math.random()<.75){ const a=Math.random()*Math.PI*2; rcPuff(Math.cos(a)*3,rcAlt-6+Math.random()*4,Math.sin(a)*3, Math.cos(a)*4,-2+Math.random()*3,Math.sin(a)*4,4,4.2,9,.95,.94,.92); }
@@ -2264,6 +2287,12 @@ function openRocketScene(){
   if (document.pointerLockElement) document.exitPointerLock();
   rcResize();
 }
+/* ============================================================
+   ФИНАЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ:
+   1. Голос: «Поднимитесь в ракету» / «Launch.»
+   2. 10 пип-сигналов за 10 секунд
+   3. Голос: «Старт!»
+   ============================================================ */
 function startPadSequence(){
   padState = 'boarding';
   padTimer = 0;
@@ -2272,7 +2301,45 @@ function startPadSequence(){
   if (rcSndOn) rcSetRumble(0.15, 180);
   const r = document.getElementById('radio');
   if (r) { r.pause(); r.currentTime = 0; }
+
+  /* 1. Голос — «Поднимитесь в ракету» */
   speak(T().speakBoarding);
+
+  /* 2. Через 3.5 сек после начала фразы — 10 пипов за 10 секунд */
+  setTimeout(() => {
+    let pipCount = 0;
+    const pipInterval = setInterval(() => {
+      if (pipCount >= 10) {
+        clearInterval(pipInterval);
+        /* 3. Голос — «Старт!» */
+        setTimeout(() => {
+          speak(T().speakLaunch);
+          /* Даём голосу договорить, потом запускаем отсчёт ракеты */
+          setTimeout(() => {
+            padState = 'countdown';
+            rcState = 'count';
+            rcMt = -rcT_COUNT;
+          }, 1200);
+        }, 400);
+        return;
+      }
+      /* Пип-сигнал */
+      if (soundEnabled && audioCtx) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const n = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'square';
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0, n);
+        g.gain.linearRampToValueAtTime(0.12, n + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, n + 0.12);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(n); o.stop(n + 0.14);
+      }
+      pipCount++;
+    }, 1000);
+  }, 3500);
 }
 
 /* Титры с плавным растворением */
@@ -2294,9 +2361,7 @@ function showCredits(){
       setTimeout(() => {
         document.getElementById('credits').classList.remove('show');
         document.getElementById('rocketCam').classList.remove('show');
-        const mTrack = document.getElementById('mobyTrack');
-        if (mTrack) { mTrack.pause(); mTrack.currentTime = 0; }
-        mobyStarted = false;
+        switchToRadio();
         rcReset();
         creditsStarted = false;
         creditsTimer = null;
@@ -2441,34 +2506,27 @@ function animate() {
       if (child.userData.isCrewLight) child.material.color.setHex(Math.sin(tNow*4 + i) > 0 ? 0xf0e8d8 : 0x6a6258);
       if (child.userData.isCrewGlow) child.material.opacity = 0.55 + Math.sin(tNow*2 + i)*0.15;
 
-      /*       /* ═══════════════════════════════════════════════════════
-         МАЯК-МЕРЦАНИЕ — РЕЗКИЕ СТУПЕНИ (как в смотрелке)
-         Цикл 0.15 с, 3 состояния: 1.0 → 0.4 → 0.85 → снова
-         Никакой плавности — жёсткий switch, как неисправная лампа
+      /* ═══════════════════════════════════════════════════════
+         МАЯК-МЕРЦАНИЕ — РЕЗКИЕ СТУПЕНИ
+         3 состояния: 1.0 → 0.4 → 0.85 → снова, ~6.6 Гц
          ═══════════════════════════════════════════════════════ */
       if (child.userData.isCrewLight || child.userData.isCrewGlowLight) {
-        // Частота 6.6 Гц = 1 шаг каждые 0.15 с, 3 ступени за цикл
         const step = Math.floor(tNow * 6.6 + i * 0.137) % 3;
-        // Таблица из 3 значений — как flicker6 в смотрелке
         const flickerTable = [1.0, 0.4, 0.85];
         const f = flickerTable[step];
 
         if (child.userData.isCrewLight) {
-          // Ядро — резкий цвет, БЕЗ интерполяции
           child.material.color.setRGB(f, 0.08 * f, 0.08 * f);
         }
         if (child.userData.isCrewGlowLight) {
-          // Ореол — резкая прозрачность, в такт ядру
           child.material.opacity = f * 0.9;
         }
       }
       if (child.userData.isCrewHaloLight) {
-        // Внешний ореол — медленное дыхание (не трогаем, оно и так редкое)
         const halo = 0.5 + Math.abs(Math.sin(tNow * 6 + i * 2.1)) * 0.5;
         child.material.opacity = 0.06 + halo * 0.18;
       }
-    });
-    item.traverse(child => {
+    });    item.traverse(child => {
       if (child.userData && child.userData.antennaTip) child.userData.antennaTip.material.emissiveIntensity = 1.0 + Math.sin(tNow*5 + i)*0.6;
     });
   });
