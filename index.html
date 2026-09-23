@@ -331,16 +331,23 @@ function startInterstitialAds() {
   }, 15 * 60 * 1000);
 }
 
-function pauseAllAudio(){
-  const m = document.getElementById('mobyTrack'); if (m) m.pause();
-  stopLuQueue();
-}
 function resumeAllAudio(){
   if (!soundEnabled) return;
+
+  /* Если открыта финальная сцена — возобновляем moby */
+  if (document.getElementById('rocketCam').classList.contains('show')) {
+    const m = document.getElementById('mobyTrack');
+    if (m && m.paused) {
+      m.muted = false;
+      m.volume = 1.0;
+      m.play().catch(()=>{});
+    }
+    return;
+  }
+
   if (mobyStarted) return;
   if (typeof creditsStarted !== 'undefined' && creditsStarted) return;
   if (typeof missionComplete !== 'undefined' && missionComplete) return;
-  if (document.getElementById('rocketCam').classList.contains('show')) return;
   startLuQueue();
 }
 if (typeof vkBridge !== 'undefined') {
@@ -2076,7 +2083,7 @@ function updateHUD() {
 function triggerFinale() {
   if (missionComplete) return;
   missionComplete = true;
-  speak(T().speakFindRocket);
+  /* Голос теперь произносится только в startPadSequence() — один раз */
 }
 function triggerFailure(reason) {
   if (missionFailed) return;
@@ -2287,18 +2294,16 @@ function rcLoop(now){
     if(rcSep){ const tb=rcMt-rcT_SEP; rcBoostG.forEach((b,i)=>{ const K=rcBK[i], pw=rcKfWrap(K.bb,tb); b.g.position.set(b.s*rcKfWrap(K.x,tb), rcKfWrap(K.y,tb)-rcAlt, 0); b.g.rotation.z=rcKfWrap(K.a,tb); const lg=rcKfWrap(K.leg,tb); b.legs.forEach(l=>l.rotation.z=lg); rcFlameMat[i+1].u.uPower.value=pw; rcGlowBoost[i].material.opacity=pw*.8; rcPlumeBoost[i].scale.set(1,1+pw*.2,1); if(pw>.3 && Math.random()<.6){ const w=new THREE.Vector3(); b.g.getWorldPosition(w); rcPuff(w.x,Math.max(.5,w.y-14),w.z,(Math.random()-.5)*6,-3,(Math.random()-.5)*6, 3,4.5,6,.95,.93,.9); } if(tb>34.2 && !rcLand[i]){ rcLand[i]=true; for(let k=0;k<70;k++){ const a=Math.random()*Math.PI*2,r=2+Math.random()*6; rcPuff(b.s*28+Math.cos(a)*r,.6+Math.random(),Math.sin(a)*r, Math.cos(a)*(9+Math.random()*16),1+Math.random()*4,Math.sin(a)*(9+Math.random()*16), 4+Math.random()*6,6,7+Math.random()*4,.9,.88,.84); } } }); }
     if(rcMt>=rcT_END){ rcState='done'; }
   }
-  if(rcState==='flight' && !creditsStarted){
-    if(creditsTimer === null) creditsTimer = 10.0;
-    creditsTimer -= dt;
-    if (creditsTimer <= 0) {
-      creditsStarted = true;
-      stopLuQueue();
-      const m = document.getElementById('mobyTrack');
-      if (m) { m.pause(); m.currentTime = 0; }
-      document.getElementById('credits').classList.add('show');
-      showCredits();
-    }
+if(rcState==='flight' && !creditsStarted){
+  if(creditsTimer === null) creditsTimer = 10.0;
+  creditsTimer -= dt;
+  if (creditsTimer <= 0) {
+    creditsStarted = true;
+    /* moby продолжает играть — не паузим */
+    document.getElementById('credits').classList.add('show');
+    showCredits();
   }
+}
   if (rcState==='flight' && performance.now() - rcUserZoom > 8000) {
     const ty = rcKfWrap(rcCamKeys.map(k=>[k[0],k[1]]), Math.min(rcMt, rcT_END));
     const td = rcKfWrap(rcCamKeys.map(k=>[k[0],k[2]]), Math.min(rcMt, rcT_END));
@@ -2316,27 +2321,41 @@ function rcLoop(now){
 }
 function rcResize(){ const r=rcCanvas.getBoundingClientRect(); const w=r.width||innerWidth, h=r.height||innerHeight; rcRenderer.setSize(w,h,false); rcCamera.aspect=w/h; rcCamera.updateProjectionMatrix(); rcSMat.uniforms.uPix.value = h*.5/Math.tan(rcCamera.fov*.5*Math.PI/180)*rcRenderer.getPixelRatio(); }
 rcResize(); rcReset(); requestAnimationFrame(rcLoop); addEventListener('resize', rcResize);
-
 function openRocketScene(){
+  /* Останавливаем только lu-очередь. moby продолжает играть в финальной сцене. */
+  stopLuQueue();
+
   document.getElementById('rocketCam').classList.add('show');
   if (document.pointerLockElement) document.exitPointerLock();
   rcResize();
-}
-/* ============================================================
+}/* ============================================================
    ФИНАЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ:
    1. Голос: «Экипаж в сборе. Поднимитесь в ракету.»
    2. 10 пип-сигналов за 10 секунд
    3. Голос: «СТАРТ!»
    ============================================================ */
+let padSequenceStarted = false;
 function startPadSequence(){
+  if (padSequenceStarted) return;   // защита от повторного запуска
+  padSequenceStarted = true;
+
   padState = 'boarding';
   padTimer = 0;
   rcInitAudio();
   if (rcAC && rcAC.state === 'suspended') rcAC.resume();
   if (rcSndOn) rcSetRumble(0.15, 180);
+
+  /* Останавливаем только lu-очередь. moby продолжает играть. */
   stopLuQueue();
+
+  /* Если moby почему-то не запущен — запускаем принудительно */
   const m = document.getElementById('mobyTrack');
-  if (m) { m.pause(); m.currentTime = 0; }
+  if (m && (m.paused || m.currentTime === 0)) {
+    m.muted = false;
+    m.volume = soundEnabled ? 1.0 : 0;
+    m.play().catch(err => console.log('moby resume in pad sequence:', err));
+    mobyStarted = true;
+  }
 
   /* 1. Голос — «Экипаж в сборе. Поднимитесь в ракету.» */
   speak(T().speakBoarding);
@@ -2394,18 +2413,24 @@ function showCredits(){
     if (i >= seq.length) {
       el.classList.remove('show');
       el.style.opacity = '0';
-      setTimeout(() => {
-        document.getElementById('credits').classList.remove('show');
-        document.getElementById('rocketCam').classList.remove('show');
-        rcReset();
-        creditsStarted = false;
-        creditsTimer = null;
-        mobyStarted = false;
-        const ov = document.getElementById('overlay');
-        ov.classList.remove('hidden');
-        ov.style.opacity = '1';
-        document.getElementById('ovHintBottom').textContent = 'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ ЗАНОВО';
-      }, FADE_OUT);
+setTimeout(() => {
+  document.getElementById('credits').classList.remove('show');
+  document.getElementById('rocketCam').classList.remove('show');
+  rcReset();
+  creditsStarted = false;
+  creditsTimer = null;
+  mobyStarted = false;
+  padSequenceStarted = false;
+
+  /* Теперь останавливаем moby — титры закончились */
+  const m = document.getElementById('mobyTrack');
+  if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
+
+  const ov = document.getElementById('overlay');
+  ov.classList.remove('hidden');
+  ov.style.opacity = '1';
+  document.getElementById('ovHintBottom').textContent = 'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ ЗАНОВО';
+}, FADE_OUT);
       return;
     }
     el.style.transition = `opacity ${FADE_IN}ms ease-in-out`;
