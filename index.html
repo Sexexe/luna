@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>ЛУННАЯ ОДИССЕЯ — ПИРКС</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -269,7 +270,7 @@
 
 <button id="flightBtn" class="flight">ПОЛЁТ</button>
 
-<!-- ====== АУДИО: убрано радио, добавлена очередь lu1→lu2→lu3 ====== -->
+<!-- ====== АУДИО: очередь lu1→lu2→lu3, затем moby ====== -->
 <audio id="lu1" src="lu1.mp3" preload="auto"></audio>
 <audio id="lu2" src="lu2.mp3" preload="auto"></audio>
 <audio id="lu3" src="lu3.mp3" preload="auto"></audio>
@@ -278,15 +279,23 @@
 <div id="rocketCam"><canvas id="rcCanvas"></canvas></div>
 
 <script>
-(async () => {/* ============================================================
+(async () => {
+
+/* ============================================================
    VK BRIDGE + ФОН + МОНЕТИЗАЦИЯ
    ============================================================ */
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+/* Глобальные флаги — ДО всего, чтобы не было temporal dead zone */
+let soundEnabled = true;
+let mobyStarted = false;
+
 /* Принудительная остановка moby при загрузке страницы */
 window.addEventListener('load', () => {
   const m = document.getElementById('mobyTrack');
   if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
 });
+
 let vkBridgeReady = false, myVkId = null, myVkName = 'Гость';
 
 (async () => {
@@ -331,40 +340,6 @@ function startInterstitialAds() {
   }, 15 * 60 * 1000);
 }
 
-function resumeAllAudio(){
-  if (!soundEnabled) return;
-
-  /* Если открыта финальная сцена — возобновляем moby */
-  if (document.getElementById('rocketCam').classList.contains('show')) {
-    const m = document.getElementById('mobyTrack');
-    if (m && m.paused) {
-      m.muted = false;
-      m.volume = 1.0;
-      m.play().catch(()=>{});
-    }
-    return;
-  }
-
-  if (mobyStarted) return;
-  if (typeof creditsStarted !== 'undefined' && creditsStarted) return;
-  if (typeof missionComplete !== 'undefined' && missionComplete) return;
-  startLuQueue();
-}
-if (typeof vkBridge !== 'undefined') {
-  try {
-    vkBridge.subscribe((e) => {
-      if (e.detail.type === 'VKWebAppViewHide') pauseAllAudio();
-      else if (e.detail.type === 'VKWebAppViewRestore') resumeAllAudio();
-    });
-  } catch(e) {}
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pauseAllAudio(); else resumeAllAudio();
-});
-
-let soundEnabled = true;
-let mobyStarted = false;
-
 /* ============================================================
    ОЧЕРЕДЬ LU1 → LU2 → LU3 (вместо радио)
    ============================================================ */
@@ -383,7 +358,6 @@ function bindLuHandlers() {
       if (!luQueueActive) return;
       if (!soundEnabled) return;
       if (mobyStarted) return;
-      /* переходим к следующему */
       luIndex = (i + 1) % LU_IDS.length;
       playLuCurrent();
     });
@@ -419,6 +393,48 @@ function stopLuQueue() {
 }
 
 /* ============================================================
+   PAUSE / RESUME — теперь обе функции определены
+   ============================================================ */
+function pauseAllAudio(){
+  stopLuQueue();
+  const m = document.getElementById('mobyTrack');
+  if (m && !m.paused) m.pause();
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function resumeAllAudio(){
+  if (!soundEnabled) return;
+
+  /* Если открыта финальная сцена — возобновляем moby */
+  if (document.getElementById('rocketCam').classList.contains('show')) {
+    const m = document.getElementById('mobyTrack');
+    if (m && m.paused) {
+      m.muted = false;
+      m.volume = 1.0;
+      m.play().catch(()=>{});
+    }
+    return;
+  }
+
+  if (mobyStarted) return;
+  if (typeof creditsStarted !== 'undefined' && creditsStarted) return;
+  if (typeof missionComplete !== 'undefined' && missionComplete) return;
+  startLuQueue();
+}
+
+if (typeof vkBridge !== 'undefined') {
+  try {
+    vkBridge.subscribe((e) => {
+      if (e.detail.type === 'VKWebAppViewHide') pauseAllAudio();
+      else if (e.detail.type === 'VKWebAppViewRestore') resumeAllAudio();
+    });
+  } catch(e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseAllAudio(); else resumeAllAudio();
+});
+
+/* ============================================================
    ПЕРЕКЛЮЧЕНИЕ НА MOBY
    ============================================================ */
 function switchToMoby() {
@@ -443,7 +459,6 @@ soundBtnEl.addEventListener('click', () => {
   if (!soundEnabled) {
     pauseAllAudio();
   } else {
-    /* если moby уже запущен — вернуть его, иначе вернуть lu-очередь */
     if (mobyStarted) {
       const m = document.getElementById('mobyTrack');
       if (m) { m.volume = 1.0; m.muted = false; m.play().catch(()=>{}); }
@@ -716,7 +731,7 @@ function speak(text){
 }
 
 /* ============================================================
-   МИР (полностью сохранён)
+   МИР
    ============================================================ */
 const WORLD_SIZE = 21166, WORLD_HALF = WORLD_SIZE / 2;
 const renderer = new THREE.WebGLRenderer({antialias: true, powerPreference:'high-performance'});
@@ -751,7 +766,6 @@ scene.fog = new THREE.FogExp2(0x04050a, 0.000055);
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.5, 400000);
 camera.position.set(-80, 2, -80);
 
-/* РЕЛЬЕФ ЛУНЫ */
 const craters = [], domes = [], faults = [];
 const CRATER_DEPTH_MULT = 3.0;
 const CRATER_TYPES = {
@@ -833,7 +847,6 @@ function computeGroundH(x, z) {
   return h;
 }
 
-/* ТЕРРЕЙН */
 const TERRAIN_TILES = 3;
 const TERRAIN_RES = 180;
 const TOTAL_RES = TERRAIN_RES * TERRAIN_TILES;
@@ -1400,7 +1413,6 @@ rocket.add(buildCore(true));
 for (const s of [-1,1]) { const b = buildCore(false); b.position.x = s*3.7; rocket.add(b); }
 scene.add(rocket);
 
-/* ТРУССЫ */
 function buildTruss(w,h,d,bays,br,mat) {
   const segs = [], hw = w/2, hd = d/2, bh = h/bays;
   const C = (x,y,z) => new THREE.Vector3(x,y,z);
@@ -1424,7 +1436,6 @@ function buildTruss(w,h,d,bays,br,mat) {
   return im;
 }
 
-/* СТАРТОВАЯ ПЛОЩАДКА */
 function makePadTex(draw, w=256, h=256){
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   draw(c.getContext('2d'),w,h);
@@ -1870,7 +1881,7 @@ document.getElementById('overlay').addEventListener('click', () => {
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  /* === РАЗБЛОКИРОВКА moby.mp3 — громкость 0, играет тихо, потом поднимем === */
+  /* Разблокировка moby.mp3 — громкость 0, играет тихо, потом поднимем */
   const mTrack = document.getElementById('mobyTrack');
   if (mTrack) {
     mTrack.muted = false;
@@ -1880,7 +1891,7 @@ document.getElementById('overlay').addEventListener('click', () => {
       .catch((err) => { console.log('moby unlock error:', err); });
   }
 
-  /* === ОЧЕРЕДЬ LU1 → LU2 → LU3 === */
+  /* ОЧЕРЕДЬ LU1 → LU2 → LU3 */
   startLuQueue();
 
   speak(T().speakIntro);
@@ -2019,7 +2030,6 @@ function checkCollection(cx, cz) {
       playCrewSaved();
       speak(T().speakSaved + item.userData.name + '.');
       updateCrewList();
-      /* Как только спасены все пятеро — lu-очередь стоп, включаем moby */
       if (crewSaved >= 5 && !mobyStarted) {
         switchToMoby();
       }
@@ -2083,7 +2093,6 @@ function updateHUD() {
 function triggerFinale() {
   if (missionComplete) return;
   missionComplete = true;
-  /* Голос теперь произносится только в startPadSequence() — один раз */
 }
 function triggerFailure(reason) {
   if (missionFailed) return;
@@ -2269,8 +2278,6 @@ const rcBKeys=s=>({
 const rcBK=rcBoostG.map(b=>rcBKeys(b.s));
 const rcCamKeys=[[0,26,140],[1.7,30,155],[13,120,300],[20,150,340],[40,120,330],[50,90,300],[72,90,300]];
 let rcIgn=false, rcShake=0, creditsStarted=false, creditsTimer=null;
-const PAD_BOARD_DELAY = 10;
-let padTimer = 0, padState = 'idle';
 
 function rcKfWrap(keys,t){ if(t<=keys[0][0]) return keys[0][1]; for(let i=0;i<keys.length-1;i++){ const a=keys[i], b=keys[i+1]; if(t<=b[0]){ const u=(t-a[0])/(b[0]-a[0]); const e=u*u*(3-2*u); return a[1]+(b[1]-a[1])*e; } } return keys[keys.length-1][1]; }
 function rcReset(){ rcState='idle'; rcMt=0; rcAlt=0; rcVel=0; rcSep=false; rcLand=[false,false]; rcRocket.position.y=0; rcCoreG.position.set(0,0,0); rcCoreG.rotation.set(0,0,0); rcBoostG.forEach(b=>{b.g.position.set(b.s*3.7,0,0); b.g.rotation.set(0,0,0); b.legs.forEach(l=>l.rotation.z=0);}); rcClamps.forEach(c=>c.rotation.z=0); rcFlameMat.forEach(f=>f.u.uPower.value=0); rcBaseGlow.material.opacity=0; rcGlowBoost.forEach(g=>g.material.opacity=0); for(let i=0;i<rcN;i++){ rcSl[i]=0; rcSA[i]=0; } rcSetRumble(0,120); rcCamera.position.set(78,34,96); rcControls.target.set(0,26,0); }
@@ -2294,16 +2301,15 @@ function rcLoop(now){
     if(rcSep){ const tb=rcMt-rcT_SEP; rcBoostG.forEach((b,i)=>{ const K=rcBK[i], pw=rcKfWrap(K.bb,tb); b.g.position.set(b.s*rcKfWrap(K.x,tb), rcKfWrap(K.y,tb)-rcAlt, 0); b.g.rotation.z=rcKfWrap(K.a,tb); const lg=rcKfWrap(K.leg,tb); b.legs.forEach(l=>l.rotation.z=lg); rcFlameMat[i+1].u.uPower.value=pw; rcGlowBoost[i].material.opacity=pw*.8; rcPlumeBoost[i].scale.set(1,1+pw*.2,1); if(pw>.3 && Math.random()<.6){ const w=new THREE.Vector3(); b.g.getWorldPosition(w); rcPuff(w.x,Math.max(.5,w.y-14),w.z,(Math.random()-.5)*6,-3,(Math.random()-.5)*6, 3,4.5,6,.95,.93,.9); } if(tb>34.2 && !rcLand[i]){ rcLand[i]=true; for(let k=0;k<70;k++){ const a=Math.random()*Math.PI*2,r=2+Math.random()*6; rcPuff(b.s*28+Math.cos(a)*r,.6+Math.random(),Math.sin(a)*r, Math.cos(a)*(9+Math.random()*16),1+Math.random()*4,Math.sin(a)*(9+Math.random()*16), 4+Math.random()*6,6,7+Math.random()*4,.9,.88,.84); } } }); }
     if(rcMt>=rcT_END){ rcState='done'; }
   }
-if(rcState==='flight' && !creditsStarted){
-  if(creditsTimer === null) creditsTimer = 10.0;
-  creditsTimer -= dt;
-  if (creditsTimer <= 0) {
-    creditsStarted = true;
-    /* moby продолжает играть — не паузим */
-    document.getElementById('credits').classList.add('show');
-    showCredits();
+  if(rcState==='flight' && !creditsStarted){
+    if(creditsTimer === null) creditsTimer = 10.0;
+    creditsTimer -= dt;
+    if (creditsTimer <= 0) {
+      creditsStarted = true;
+      document.getElementById('credits').classList.add('show');
+      showCredits();
+    }
   }
-}
   if (rcState==='flight' && performance.now() - rcUserZoom > 8000) {
     const ty = rcKfWrap(rcCamKeys.map(k=>[k[0],k[1]]), Math.min(rcMt, rcT_END));
     const td = rcKfWrap(rcCamKeys.map(k=>[k[0],k[2]]), Math.min(rcMt, rcT_END));
@@ -2322,33 +2328,26 @@ if(rcState==='flight' && !creditsStarted){
 function rcResize(){ const r=rcCanvas.getBoundingClientRect(); const w=r.width||innerWidth, h=r.height||innerHeight; rcRenderer.setSize(w,h,false); rcCamera.aspect=w/h; rcCamera.updateProjectionMatrix(); rcSMat.uniforms.uPix.value = h*.5/Math.tan(rcCamera.fov*.5*Math.PI/180)*rcRenderer.getPixelRatio(); }
 rcResize(); rcReset(); requestAnimationFrame(rcLoop); addEventListener('resize', rcResize);
 function openRocketScene(){
-  /* Останавливаем только lu-очередь. moby продолжает играть в финальной сцене. */
   stopLuQueue();
-
   document.getElementById('rocketCam').classList.add('show');
   if (document.pointerLockElement) document.exitPointerLock();
   rcResize();
-}/* ============================================================
-   ФИНАЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ:
-   1. Голос: «Экипаж в сборе. Поднимитесь в ракету.»
-   2. 10 пип-сигналов за 10 секунд
-   3. Голос: «СТАРТ!»
+}
+
+/* ============================================================
+   ФИНАЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ
    ============================================================ */
 let padSequenceStarted = false;
 function startPadSequence(){
-  if (padSequenceStarted) return;   // защита от повторного запуска
+  if (padSequenceStarted) return;
   padSequenceStarted = true;
 
-  padState = 'boarding';
-  padTimer = 0;
   rcInitAudio();
   if (rcAC && rcAC.state === 'suspended') rcAC.resume();
   if (rcSndOn) rcSetRumble(0.15, 180);
 
-  /* Останавливаем только lu-очередь. moby продолжает играть. */
   stopLuQueue();
 
-  /* Если moby почему-то не запущен — запускаем принудительно */
   const m = document.getElementById('mobyTrack');
   if (m && (m.paused || m.currentTime === 0)) {
     m.muted = false;
@@ -2357,28 +2356,22 @@ function startPadSequence(){
     mobyStarted = true;
   }
 
-  /* 1. Голос — «Экипаж в сборе. Поднимитесь в ракету.» */
   speak(T().speakBoarding);
 
-  /* 2. Через 3.5 сек после начала фразы — 10 пипов за 10 секунд */
   setTimeout(() => {
     let pipCount = 0;
     const pipInterval = setInterval(() => {
       if (pipCount >= 10) {
         clearInterval(pipInterval);
-        /* 3. Голос — «Старт!» */
         setTimeout(() => {
           speak(T().speakLaunch);
-          /* Даём голосу договорить, потом запускаем отсчёт ракеты */
           setTimeout(() => {
-            padState = 'countdown';
             rcState = 'count';
             rcMt = -rcT_COUNT;
           }, 1200);
         }, 400);
         return;
       }
-      /* Пип-сигнал */
       if (soundEnabled && audioCtx) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const n = audioCtx.currentTime;
@@ -2397,7 +2390,6 @@ function startPadSequence(){
   }, 3500);
 }
 
-/* Титры */
 function showCredits(){
   const el = document.getElementById('creditsText');
   const seq = [
@@ -2413,24 +2405,23 @@ function showCredits(){
     if (i >= seq.length) {
       el.classList.remove('show');
       el.style.opacity = '0';
-setTimeout(() => {
-  document.getElementById('credits').classList.remove('show');
-  document.getElementById('rocketCam').classList.remove('show');
-  rcReset();
-  creditsStarted = false;
-  creditsTimer = null;
-  mobyStarted = false;
-  padSequenceStarted = false;
+      setTimeout(() => {
+        document.getElementById('credits').classList.remove('show');
+        document.getElementById('rocketCam').classList.remove('show');
+        rcReset();
+        creditsStarted = false;
+        creditsTimer = null;
+        mobyStarted = false;
+        padSequenceStarted = false;
 
-  /* Теперь останавливаем moby — титры закончились */
-  const m = document.getElementById('mobyTrack');
-  if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
+        const m = document.getElementById('mobyTrack');
+        if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
 
-  const ov = document.getElementById('overlay');
-  ov.classList.remove('hidden');
-  ov.style.opacity = '1';
-  document.getElementById('ovHintBottom').textContent = 'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ ЗАНОВО';
-}, FADE_OUT);
+        const ov = document.getElementById('overlay');
+        ov.classList.remove('hidden');
+        ov.style.opacity = '1';
+        document.getElementById('ovHintBottom').textContent = 'НАЖМИТЕ, ЧТОБЫ НАЧАТЬ ЗАНОВО';
+      }, FADE_OUT);
       return;
     }
     el.style.transition = `opacity ${FADE_IN}ms ease-in-out`;
@@ -2578,7 +2569,8 @@ function animate() {
         const halo = 0.5 + Math.abs(Math.sin(tNow * 6 + i * 2.1)) * 0.5;
         child.material.opacity = 0.06 + halo * 0.18;
       }
-    });    item.traverse(child => {
+    });
+    item.traverse(child => {
       if (child.userData && child.userData.antennaTip) child.userData.antennaTip.material.emissiveIntensity = 1.0 + Math.sin(tNow*5 + i)*0.6;
     });
   });
@@ -2619,7 +2611,6 @@ addEventListener('resize', () => {
 });
 document.body.addEventListener('touchmove', e => { if (e.target === document.body) e.preventDefault(); }, {passive:false});
 
-/* Кнопка MISSION CONTROL — теперь управляет lu-очередью */
 document.getElementById('musicBtn2').addEventListener('click', () => {
   if (!soundEnabled) return;
   if (mobyStarted) {
