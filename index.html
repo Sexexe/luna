@@ -789,7 +789,7 @@ function addFault(x, z, len, ang, h, w) { faults.push({ x, z, len, ang, h, w });
   for (let i = 0; i < 15; i++) addFault((Math.random()-0.5)*WORLD_SIZE, (Math.random()-0.5)*WORLD_SIZE, 300 + Math.random() * 900, Math.random() * Math.PI, 10 + Math.random() * 30, 60 + Math.random() * 100);
 }
 
-const CELL_SIZE = 400;
+const CELL_SIZE = 1200;
 const gridCols = Math.ceil(WORLD_SIZE / CELL_SIZE);
 const gridRows = Math.ceil(WORLD_SIZE / CELL_SIZE);
 const grid = new Array(gridCols * gridRows);
@@ -810,12 +810,12 @@ for (let i = 0; i < craters.length; i++) {
 
 function smoothstep(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
 function fbmNoise(x, z) { let h = 0; const K1 = 2 * Math.PI / 4000;
-  h += Math.sin(x*K1)*Math.cos(z*K1)*10.8;
-  h += Math.sin(x*K1*2.3+1.3)*Math.cos(z*K1*2.1+2.1)*5.4;
-  h += Math.sin(x*K1*5.1+0.7)*Math.cos(z*K1*4.7+1.5)*2.4;
-  h += Math.sin(x*K1*11.3+2.7)*Math.cos(z*K1*13.1+0.3)*1.08;
-  h += Math.sin(x*K1*23.7+4.1)*Math.cos(z*K1*27.3+5.9)*0.48;
-  h += Math.sin(x*K1*53.1+7.3)*Math.cos(z*K1*61.7+3.1)*0.21;
+  h += Math.sin(x*K1)*Math.cos(z*K1)*21.6;
+  h += Math.sin(x*K1*2.3+1.3)*Math.cos(z*K1*2.1+2.1)*10.8;
+  h += Math.sin(x*K1*5.1+0.7)*Math.cos(z*K1*4.7+1.5)*4.8;
+  h += Math.sin(x*K1*11.3+2.7)*Math.cos(z*K1*13.1+0.3)*2.16;
+  h += Math.sin(x*K1*23.7+4.1)*Math.cos(z*K1*27.3+5.9)*0.96;
+  h += Math.sin(x*K1*53.1+7.3)*Math.cos(z*K1*61.7+3.1)*0.42;
   return h;
 }
 function wrappedDelta(d) { if (d > WORLD_HALF) d -= WORLD_SIZE; else if (d < -WORLD_HALF) d += WORLD_SIZE; return d; }
@@ -848,7 +848,7 @@ function computeGroundH(x, z) {
 }
 
 const TERRAIN_TILES = 3;
-const TERRAIN_RES = 180;
+const TERRAIN_RES = 360;
 const TOTAL_RES = TERRAIN_RES * TERRAIN_TILES;
 const TERRAIN_SIZE = WORLD_SIZE * TERRAIN_TILES;
 const vertsPerRow = TOTAL_RES + 1;
@@ -910,17 +910,27 @@ terrainGeo.computeVertexNormals();
 {
   const colors = new Float32Array(posAttr.count * 3);
   const normals = terrainGeo.attributes.normal;
+  const smoothstepLocal = (a, b, x) => {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
   for (let i = 0; i < posAttr.count; i++) {
     const y = smoothed[i], ny = normals.getY(i);
     let r = 0.62, g = 0.60, b = 0.58;
-    if (y > 15) { const k = Math.min(1, (y - 15) / 120); r += 0.18*k; g += 0.17*k; b += 0.14*k; }
-    if (y < -15) { const k = Math.min(1, (-y - 15) / 120); r -= 0.18*k; g -= 0.17*k; b -= 0.15*k; }
+    // Плавный переход по высоте (вместо резких порогов 15 / -15)
+    const hiK = smoothstepLocal(5, 140, y);
+    const loK = smoothstepLocal(5, 140, -y);
+    r += 0.18 * hiK; g += 0.17 * hiK; b += 0.14 * hiK;
+    r -= 0.18 * loK; g -= 0.17 * loK; b -= 0.15 * loK;
+    // Плавное затемнение на склонах
     const slope = 1 - Math.max(0, ny);
-    r -= slope * 0.22; g -= slope * 0.22; b -= slope * 0.20;
+    const slopeK = smoothstepLocal(0.0, 0.6, slope);
+    r -= slopeK * 0.22; g -= slopeK * 0.22; b -= slopeK * 0.20;
+    // Плавное затемнение к горизонту (без резкого fadeMul = 1 - 0.98)
     const vx = posAttr.getX(i), vz = posAttr.getZ(i);
     const distFromCenter = Math.sqrt(vx*vx + vz*vz);
-    const horizonFade = Math.min(1, distFromCenter / (TERRAIN_SIZE * 0.30));
-    const fadeMul = 1.0 - horizonFade * 0.98;
+    const horizonFade = smoothstepLocal(TERRAIN_SIZE * 0.20, TERRAIN_SIZE * 0.36, distFromCenter);
+    const fadeMul = 1.0 - horizonFade * 0.92;
     r *= fadeMul; g *= fadeMul; b *= fadeMul;
     colors[i*3] = Math.max(0, Math.min(1, r));
     colors[i*3+1] = Math.max(0, Math.min(1, g));
