@@ -154,7 +154,6 @@
   #ovTopInfo .briefing b{color:#ffffff;letter-spacing:1px}
   #ovTopInfo .briefing.hidden{display:none}
   #ovTopInfo .quote{color:#ffffff;font-style:italic;margin-top:12px;font-size:11px;max-width:520px;line-height:1.65;opacity:.85}
-  #ovTopInfo .playerInfo{color:#ffffff;margin-top:8px;font-size:10px;font-family:var(--font-mono);letter-spacing:2px;opacity:.9}
   #ovMoreBtn{
     margin-top:8px;padding:6px 16px;background:transparent;
     border:1px solid rgba(255,255,255,.55);color:#ffffff;
@@ -259,7 +258,6 @@
     <div class="briefing hidden" id="ovBriefing"></div>
 
     <p class="quote" id="ovQuote">«Мы не ищем других. Мы ищем себя — в чужих зеркалах».<br>— Станислав Лем</p>
-    <p class="playerInfo" id="playerInfo"></p>
   </div>
 
   <div id="ovHintBottom">НАЖМИТЕ, ЧТОБЫ НАЧАТЬ</div>
@@ -270,7 +268,6 @@
 
 <button id="flightBtn" class="flight">ПОЛЁТ</button>
 
-<!-- ====== АУДИО: очередь lu1→lu2→lu3, затем moby ====== -->
 <audio id="lu1" src="lu1.mp3" preload="auto"></audio>
 <audio id="lu2" src="lu2.mp3" preload="auto"></audio>
 <audio id="lu3" src="lu3.mp3" preload="auto"></audio>
@@ -282,37 +279,26 @@
 (async () => {
 
 /* ============================================================
-   VK BRIDGE + ФОН + МОНЕТИЗАЦИЯ
+   VK BRIDGE + МОНЕТИЗАЦИЯ
    ============================================================ */
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-/* Глобальные флаги — ДО всего, чтобы не было temporal dead zone */
 let soundEnabled = true;
 let mobyStarted = false;
 
-/* Принудительная остановка moby при загрузке страницы */
 window.addEventListener('load', () => {
   const m = document.getElementById('mobyTrack');
   if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
 });
 
-let vkBridgeReady = false, myVkId = null, myVkName = 'Гость';
+let vkBridgeReady = false;
 
 (async () => {
   try {
     if (typeof vkBridge === 'undefined') return;
     await vkBridge.send('VKWebAppInit', {});
     vkBridgeReady = true;
-    const user = await vkBridge.send('VKWebAppGetUserInfo', {});
-    myVkId = String(user.id);
-    myVkName = `${user.first_name} ${user.last_name}`.trim() || 'Оператор';
-    document.getElementById('playerInfo').textContent = '◆ ' + myVkName;
   } catch(e){ vkBridgeReady = false; }
-  if (!myVkId) {
-    myVkId = 'local_' + Date.now();
-    myVkName = 'Гость ' + myVkId.slice(-4);
-    document.getElementById('playerInfo').textContent = '◆ ' + myVkName;
-  }
 })();
 
 async function showRewardedAd(){
@@ -321,7 +307,6 @@ async function showRewardedAd(){
   catch(e){ return false; }
 }
 
-let interstitialTimer = null;
 let interstitialStarted = false;
 async function showInterstitialAd() {
   if (!vkBridgeReady) return;
@@ -330,7 +315,7 @@ async function showInterstitialAd() {
 function startInterstitialAds() {
   if (interstitialStarted) return;
   interstitialStarted = true;
-  interstitialTimer = setInterval(async () => {
+  setInterval(async () => {
     const rocketShowing  = document.getElementById('rocketCam').classList.contains('show');
     const creditsShowing = document.getElementById('credits').classList.contains('show');
     const finalShowing   = !document.getElementById('finalModal').classList.contains('hidden');
@@ -341,7 +326,7 @@ function startInterstitialAds() {
 }
 
 /* ============================================================
-   ОЧЕРЕДЬ LU1 → LU2 → LU3 (вместо радио)
+   ОЧЕРЕДЬ LU1 → LU2 → LU3
    ============================================================ */
 const LU_IDS = ['lu1', 'lu2', 'lu3'];
 let luIndex = 0;
@@ -392,9 +377,6 @@ function stopLuQueue() {
   });
 }
 
-/* ============================================================
-   PAUSE / RESUME — теперь обе функции определены
-   ============================================================ */
 function pauseAllAudio(){
   stopLuQueue();
   const m = document.getElementById('mobyTrack');
@@ -404,8 +386,6 @@ function pauseAllAudio(){
 
 function resumeAllAudio(){
   if (!soundEnabled) return;
-
-  /* Если открыта финальная сцена — возобновляем moby */
   if (document.getElementById('rocketCam').classList.contains('show')) {
     const m = document.getElementById('mobyTrack');
     if (m && m.paused) {
@@ -415,7 +395,6 @@ function resumeAllAudio(){
     }
     return;
   }
-
   if (mobyStarted) return;
   if (typeof creditsStarted !== 'undefined' && creditsStarted) return;
   if (typeof missionComplete !== 'undefined' && missionComplete) return;
@@ -434,9 +413,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) pauseAllAudio(); else resumeAllAudio();
 });
 
-/* ============================================================
-   ПЕРЕКЛЮЧЕНИЕ НА MOBY
-   ============================================================ */
 function switchToMoby() {
   stopLuQueue();
   const m = document.getElementById('mobyTrack');
@@ -917,16 +893,13 @@ terrainGeo.computeVertexNormals();
   for (let i = 0; i < posAttr.count; i++) {
     const y = smoothed[i], ny = normals.getY(i);
     let r = 0.62, g = 0.60, b = 0.58;
-    // Плавный переход по высоте (вместо резких порогов 15 / -15)
     const hiK = smoothstepLocal(5, 140, y);
     const loK = smoothstepLocal(5, 140, -y);
     r += 0.18 * hiK; g += 0.17 * hiK; b += 0.14 * hiK;
     r -= 0.18 * loK; g -= 0.17 * loK; b -= 0.15 * loK;
-    // Плавное затемнение на склонах
     const slope = 1 - Math.max(0, ny);
     const slopeK = smoothstepLocal(0.0, 0.6, slope);
     r -= slopeK * 0.22; g -= slopeK * 0.22; b -= slopeK * 0.20;
-    // Плавное затемнение к горизонту (без резкого fadeMul = 1 - 0.98)
     const vx = posAttr.getX(i), vz = posAttr.getZ(i);
     const distFromCenter = Math.sqrt(vx*vx + vz*vz);
     const horizonFade = smoothstepLocal(TERRAIN_SIZE * 0.20, TERRAIN_SIZE * 0.36, distFromCenter);
@@ -1891,7 +1864,6 @@ document.getElementById('overlay').addEventListener('click', () => {
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  /* Разблокировка moby.mp3 — громкость 0, играет тихо, потом поднимем */
   const mTrack = document.getElementById('mobyTrack');
   if (mTrack) {
     mTrack.muted = false;
@@ -1901,9 +1873,7 @@ document.getElementById('overlay').addEventListener('click', () => {
       .catch((err) => { console.log('moby unlock error:', err); });
   }
 
-  /* ОЧЕРЕДЬ LU1 → LU2 → LU3 */
   startLuQueue();
-
   speak(T().speakIntro);
   startInterstitialAds();
 });
