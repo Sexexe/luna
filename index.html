@@ -301,20 +301,65 @@ let vkBridgeReady = false;
   } catch(e){ vkBridgeReady = false; }
 })();
 
+async function checkNativeAds(format){
+  if (!vkBridgeReady) return false;
+  try {
+    const data = await vkBridge.send('VKWebAppCheckNativeAds', { ad_format: format });
+    return !!(data && data.result);
+  } catch (error) {
+    console.log('VKWebAppCheckNativeAds error:', error);
+    return false;
+  }
+}
+
 async function showRewardedAd(){
   if (!vkBridgeReady) return true;
-  try { const r = await vkBridge.send('VKWebAppShowNativeAds',{ad_format:'reward'}); return !!r.result; }
-  catch(e){ return false; }
+  try {
+    const ready = await checkNativeAds('reward');
+    if (!ready) { console.log('Rewarded: материалы не готовы.'); return false; }
+    const data = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+    if (data && data.result) { console.log('Rewarded: реклама показана'); return true; }
+    console.log('Rewarded: ошибка при показе');
+    return false;
+  } catch (error) {
+    console.log('Rewarded error:', error);
+    return false;
+  }
 }
 
 let interstitialStarted = false;
+let preloadTimer = null;
+
 async function showInterstitialAd() {
   if (!vkBridgeReady) return;
-  try { await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }); } catch(e) {}
+  try {
+    const ready = await checkNativeAds('interstitial');
+    if (!ready) { console.log('Interstitial: материалы не готовы.'); return; }
+    const data = await vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
+    if (data && data.result) console.log('Interstitial: реклама показана');
+    else console.log('Interstitial: ошибка при показе');
+  } catch (error) {
+    console.log('Interstitial error:', error);
+  }
 }
+
+function startPreloadAds() {
+  if (!vkBridgeReady) return;
+  if (preloadTimer) return;
+  preloadTimer = setInterval(() => {
+    const rocketShowing  = document.getElementById('rocketCam').classList.contains('show');
+    const creditsShowing = document.getElementById('credits').classList.contains('show');
+    const finalShowing   = !document.getElementById('finalModal').classList.contains('hidden');
+    const overlayShowing = !document.getElementById('overlay').classList.contains('hidden');
+    if (rocketShowing || creditsShowing || finalShowing || overlayShowing) return;
+    checkNativeAds('interstitial');
+  }, 5 * 60 * 1000);
+}
+
 function startInterstitialAds() {
   if (interstitialStarted) return;
   interstitialStarted = true;
+  startPreloadAds();
   setInterval(async () => {
     const rocketShowing  = document.getElementById('rocketCam').classList.contains('show');
     const creditsShowing = document.getElementById('credits').classList.contains('show');
@@ -823,6 +868,35 @@ function computeGroundH(x, z) {
   return h;
 }
 
+/* ---------- ПОИСК САМОГО ГЛУБОКОГО КРАТЕРА ---------- */
+function findDeepestCrater() {
+  let best = null;
+  for (const c of craters) {
+    if (!best || c.d > best.d) best = c;
+  }
+  return best;
+}
+const DEEPEST_CRATER = findDeepestCrater();
+
+/* ---------- ПОИСК РЕАЛЬНОГО ДНА КРАТЕРА ---------- */
+function findCraterFloor(crater) {
+  let best = { x: crater.x, z: crater.z, y: Infinity };
+  const R = crater.r * Math.max(0.1, crater.floorFlat) * 0.95;
+  for (let i = 0; i < 48; i++) {
+    const ang = (i / 48) * Math.PI * 2;
+    for (let k = 0; k <= 5; k++) {
+      const r = R * (k / 5);
+      const tx = crater.x + Math.cos(ang) * r;
+      const tz = crater.z + Math.sin(ang) * r;
+      const ty = computeGroundH(tx, tz);
+      if (ty < best.y) best = { x: tx, z: tz, y: ty };
+    }
+  }
+  return best;
+}
+const CRATER_FLOOR = findCraterFloor(DEEPEST_CRATER);
+let LAUNCH_PAD_Y = 0;
+
 const TERRAIN_TILES = 3;
 const TERRAIN_RES = 360;
 const TOTAL_RES = TERRAIN_RES * TERRAIN_TILES;
@@ -858,10 +932,11 @@ for (let j = 0; j < vertsPerRow; j++) for (let i = 0; i < vertsPerRow; i++) {
 }
 smoothed.set(smoothed2);
 
+/* ---------- ВЫРАВНИВАНИЕ ПЛОЩАДКИ НА ДНЕ САМОГО ГЛУБОКОГО КРАТЕРА ---------- */
 {
-  const PAD_CANDIDATES = [{ x: 1000, z: 0 }];
-  const smoothR = 200;
-  const blendR  = 260;
+  const PAD_CANDIDATES = [{ x: CRATER_FLOOR.x, z: CRATER_FLOOR.z }];
+  const smoothR = 220;   // плоская зона (плита 43 + мачты 54 + запас)
+  const blendR  = 320;   // мягкий переход к рельефу
   for (const C of PAD_CANDIDATES) {
     let sum = 0, cnt = 0;
     for (let i = 0; i < posAttr.count; i++) {
@@ -870,6 +945,7 @@ smoothed.set(smoothed2);
     }
     if (!cnt) continue;
     const padH = sum / cnt;
+    LAUNCH_PAD_Y = padH;
     for (let i = 0; i < posAttr.count; i++) {
       const vx = posAttr.getX(i), vz = posAttr.getZ(i);
       const d = Math.hypot(vx - C.x, vz - C.z);
@@ -877,6 +953,13 @@ smoothed.set(smoothed2);
       const t = d <= smoothR ? 1.0 : (1 - (d - smoothR) / (blendR - smoothR));
       const eased = t * t * (3 - 2 * t);
       smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
+    }
+    // Абсолютная плоскость внутри smoothR
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i), vz = posAttr.getZ(i);
+      if (Math.hypot(vx - C.x, vz - C.z) <= smoothR) {
+        smoothed[i] = padH;
+      }
     }
   }
 }
@@ -1531,19 +1614,33 @@ function buildFullLaunchPad() {
     for(let k=0;k<3;k++) g.add(padMesh(new THREE.BoxGeometry(0.9,0.7,0.3), PAD_MATS.lamp, [-1+k,44.6,0.7]));
     group.add(g);
   }
-  const vab = new THREE.Group(); vab.position.set(-160,0,0);
+  return group;
+}
+
+/* Отдельные постройки на реальном рельефе (VAB и дальние маяки) */
+function buildDistantStructures() {
+  const group = new THREE.Group();
+
+  // VAB
+  const vabPos = { x: -160, z: 0 };
+  const vabY = sampleHeight(vabPos.x, vabPos.z);
+  const vab = new THREE.Group(); vab.position.set(vabPos.x, vabY, vabPos.z);
   vab.add(padMesh(new THREE.BoxGeometry(6,6,7.5), PAD_MATS.white2, [0,3,0]));
   vab.add(padMesh(new THREE.BoxGeometry(6.4,0.5,7.9), PAD_MATS.dark, [0,6.1,0]));
   vab.add(padMesh(new THREE.BoxGeometry(2.25,3.5,0.2), PAD_MATS.red, [0,2.25,3.8]));
   group.add(vab);
+
+  // Дальние маяки
   for(let i=0;i<3;i++){
     const a=i/3*Math.PI*2+1.1, x=Math.cos(a)*430, z=Math.sin(a)*430;
-    const g=new THREE.Group(); g.position.set(x,0,z);
+    const y = sampleHeight(x, z);
+    const g=new THREE.Group(); g.position.set(x, y, z);
     g.add(padMesh(new THREE.CylinderGeometry(0.5,2.6,150,8), PAD_MATS.steel, [0,75,0]));
     g.add(padMesh(new THREE.CylinderGeometry(0.2,0.5,14,6), PAD_MATS.steel, [0,157,0]));
     g.add(padMesh(new THREE.SphereGeometry(1.1,10,8), PAD_MATS.beacon, [0,164,0]));
     group.add(g);
   }
+
   return group;
 }
 
@@ -1804,24 +1901,20 @@ function spawnObjects() {
     o2Items.push(mesh);
   });
 
-  const padSpot = findFlatSpot(1000, 0, 200);
-  let hSum = 0, hCount = 0, hMin = Infinity;
-  for (let dx = -45; dx <= 45; dx += 5) {
-    for (let dz = -45; dz <= 45; dz += 5) {
-      const dist = Math.hypot(dx, dz);
-      if (dist > 45) continue;
-      const h = sampleHeight(padSpot.x + dx, padSpot.z + dz);
-      hSum += h; hCount++;
-      if (h < hMin) hMin = h;
-    }
-  }
-  const padY = hMin;
+  /* Площадка — на дне самого глубокого кратера */
+  const padSpot = { x: CRATER_FLOOR.x, z: CRATER_FLOOR.z };
+  const padY = LAUNCH_PAD_Y;
   const pad = buildFullLaunchPad();
   pad.position.set(padSpot.x, padY, padSpot.z);
   scene.add(pad);
 
+  /* Ракета — на площадке */
   rocket.position.set(padSpot.x, padY, padSpot.z);
   rocket.rotation.set(0, 0, 0);
+
+  /* Отдельные объекты на реальном рельефе */
+  const distant = buildDistantStructures();
+  scene.add(distant);
 
   window.launchPadPosition = new THREE.Vector3(padSpot.x, padY, padSpot.z);
 }
@@ -2290,7 +2383,15 @@ function rcLoop(now){
       showCredits();
     }
   }
-  if (rcState==='flight' && performance.now() - rcUserZoom > 8000) {
+  /* Камера при титрах — строго сверху вниз на взлетающую ракету */
+  if (creditsStarted) {
+    const targetY = rcRocket.position.y + 26;
+    rcControls.target.set(0, targetY, 0);
+    rcCamera.position.set(0, targetY + 260, 0.001);
+    rcCamera.up.set(0, 0, -1);
+    rcCamera.lookAt(rcControls.target);
+    rcControls.enabled = false;
+  } else if (rcState==='flight' && performance.now() - rcUserZoom > 8000) {
     const ty = rcKfWrap(rcCamKeys.map(k=>[k[0],k[1]]), Math.min(rcMt, rcT_END));
     const td = rcKfWrap(rcCamKeys.map(k=>[k[0],k[2]]), Math.min(rcMt, rcT_END));
     const dir=rcCamera.position.clone().sub(rcControls.target);
@@ -2397,7 +2498,21 @@ function showCredits(){
         padSequenceStarted = false;
 
         const m = document.getElementById('mobyTrack');
-        if (m) { m.pause(); m.currentTime = 0; m.volume = 0; m.muted = true; }
+        if (m && !m.paused) {
+          const fadeDuration = 10;
+          const startVol = m.volume;
+          const startTime = performance.now();
+          const fadeInterval = setInterval(() => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            if (elapsed >= fadeDuration) {
+              m.volume = 0;
+              m.pause();
+              clearInterval(fadeInterval);
+            } else {
+              m.volume = startVol * (1 - elapsed / fadeDuration);
+            }
+          }, 50);
+        }
 
         const ov = document.getElementById('overlay');
         ov.classList.remove('hidden');
