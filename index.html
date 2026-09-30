@@ -932,11 +932,10 @@ for (let j = 0; j < vertsPerRow; j++) for (let i = 0; i < vertsPerRow; i++) {
 }
 smoothed.set(smoothed2);
 
-/* ---------- ВЫРАВНИВАНИЕ ПЛОЩАДКИ НА ДНЕ САМОГО ГЛУБОКОГО КРАТЕРА ---------- */
 {
   const PAD_CANDIDATES = [{ x: CRATER_FLOOR.x, z: CRATER_FLOOR.z }];
-  const smoothR = 220;   // плоская зона (плита 43 + мачты 54 + запас)
-  const blendR  = 320;   // мягкий переход к рельефу
+  const smoothR = 260;   // плоская зона
+  const blendR  = 900;   // длинный плавный переход к рельефу
   for (const C of PAD_CANDIDATES) {
     let sum = 0, cnt = 0;
     for (let i = 0; i < posAttr.count; i++) {
@@ -950,20 +949,19 @@ smoothed.set(smoothed2);
       const vx = posAttr.getX(i), vz = posAttr.getZ(i);
       const d = Math.hypot(vx - C.x, vz - C.z);
       if (d > blendR) continue;
-      const t = d <= smoothR ? 1.0 : (1 - (d - smoothR) / (blendR - smoothR));
-      const eased = t * t * (3 - 2 * t);
-      smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
-    }
-    // Абсолютная плоскость внутри smoothR
-    for (let i = 0; i < posAttr.count; i++) {
-      const vx = posAttr.getX(i), vz = posAttr.getZ(i);
-      if (Math.hypot(vx - C.x, vz - C.z) <= smoothR) {
-        smoothed[i] = padH;
+      // Одна непрерывная кривая: 1 внутри smoothR, 0 на blendR
+      let eased;
+      if (d <= smoothR) {
+        eased = 1.0;
+      } else {
+        const u = (d - smoothR) / (blendR - smoothR);
+        const s = u * u * (3 - 2 * u);   // smoothstep
+        eased = 1.0 - s;
       }
+      smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
     }
   }
 }
-
 for (let i = 0; i < posAttr.count; i++) { posAttr.setY(i, smoothed[i]); heightMap[i] = smoothed[i]; }
 terrainGeo.computeVertexNormals();
 {
@@ -1618,11 +1616,11 @@ function buildFullLaunchPad() {
 }
 
 /* Отдельные постройки на реальном рельефе (VAB и дальние маяки) */
-function buildDistantStructures() {
+function buildDistantStructures(padX, padZ) {
   const group = new THREE.Group();
 
   // VAB
-  const vabPos = { x: -160, z: 0 };
+  const vabPos = { x: padX - 160, z: padZ };
   const vabY = sampleHeight(vabPos.x, vabPos.z);
   const vab = new THREE.Group(); vab.position.set(vabPos.x, vabY, vabPos.z);
   vab.add(padMesh(new THREE.BoxGeometry(6,6,7.5), PAD_MATS.white2, [0,3,0]));
@@ -1632,7 +1630,7 @@ function buildDistantStructures() {
 
   // Дальние маяки
   for(let i=0;i<3;i++){
-    const a=i/3*Math.PI*2+1.1, x=Math.cos(a)*430, z=Math.sin(a)*430;
+    const a=i/3*Math.PI*2+1.1, x=padX + Math.cos(a)*430, z=padZ + Math.sin(a)*430;
     const y = sampleHeight(x, z);
     const g=new THREE.Group(); g.position.set(x, y, z);
     g.add(padMesh(new THREE.CylinderGeometry(0.5,2.6,150,8), PAD_MATS.steel, [0,75,0]));
@@ -1913,7 +1911,7 @@ function spawnObjects() {
   rocket.rotation.set(0, 0, 0);
 
   /* Отдельные объекты на реальном рельефе */
-  const distant = buildDistantStructures();
+  const distant = buildDistantStructures(padSpot.x, padSpot.z);
   scene.add(distant);
 
   window.launchPadPosition = new THREE.Vector3(padSpot.x, padY, padSpot.z);
