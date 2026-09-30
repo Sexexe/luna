@@ -59,6 +59,7 @@
   #o2WidePanel .wPct{color:var(--text-bright);font-size:11px;letter-spacing:1px;font-weight:400}
   #o2WidePanel.warn .wTrack > div{background:linear-gradient(0deg,#8a8278,#d0c8b8)}
   #o2WidePanel.danger .wTrack > div{background:linear-gradient(0deg,#6a6258,#b8a890);animation:o2Pulse .8s infinite}
+  #o2WidePanel.over .wTrack > div{background:linear-gradient(0deg,#6ab0e0,#d8f0ff)}
   @keyframes o2Pulse{0%,100%{opacity:1}50%{opacity:.4}}
   #hamburger{
     width:44px;height:44px;background:var(--bg);border:1px solid var(--border);
@@ -110,13 +111,18 @@
   #panelClose{position:absolute;top:max(18px,env(safe-area-inset-top));right:18px;background:transparent;border:none;color:var(--text);font-size:26px;cursor:pointer;padding:8px;z-index:2}
   #musicBtn2, #soundBtn{background:var(--bg-strong);border:1px solid var(--border);color:var(--text-bright);padding:10px 14px;border-radius:10px;font-family:var(--font-ui);font-weight:400;font-size:11px;letter-spacing:1.5px;cursor:pointer;width:100%;margin-top:10px}
   #musicBtn2:active, #soundBtn:active{transform:scale(.97)}
-  #radarWrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:14;width:280px;height:280px;pointer-events:none}
-  #minimapCanvas{display:block;width:100%;height:100%}
-  #crosshair{position:fixed;top:50%;left:50%;width:36px;height:36px;transform:translate(-50%,-50%);pointer-events:none;z-index:15}
-  #crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(240,232,216,.95);box-shadow:0 0 5px rgba(0,0,0,.9)}
-  #crosshair::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%)}
-  #crosshair::after{top:50%;left:0;width:100%;height:1.5px;transform:translateY(-50%)}
-  #crosshair span{position:absolute;left:50%;top:50%;width:4px;height:4px;background:rgba(240,232,216,1);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(0,0,0,.95)}
+  #radarWrap{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:14;width:340px;height:340px;pointer-events:none}
+  #minimapCanvas{display:block;width:100%;height:100%;border-radius:50%}
+  #radarHudInfo{position:absolute;inset:0;pointer-events:none;font-family:var(--font-mono);font-size:9px;letter-spacing:1.2px;color:rgba(255,255,255,.85);text-shadow:0 0 6px rgba(255,255,255,.4);line-height:1.55}
+  .radarText{position:absolute;white-space:nowrap}
+  .radarText.top-left{top:12%;left:4%;text-align:left}
+  .radarText.top-right{top:12%;right:4%;text-align:right}
+  .radarText.bottom-left{bottom:14%;left:4%}
+  .radarText.bottom-right{bottom:14%;right:4%;text-align:right}
+  @media (max-width:768px){
+    #radarWrap{width:260px;height:260px}
+    #radarHudInfo{font-size:8px}
+  }
   #flightBtn{
     position:fixed;bottom:max(120px,calc(env(safe-area-inset-bottom) + 120px));right:max(20px,env(safe-area-inset-right));
     z-index:15;width:96px;height:96px;border-radius:50%;
@@ -231,8 +237,33 @@
   <button id="soundBtn">🔊 ЗВУК ВКЛ</button>
 </div>
 
-<div id="radarWrap"><canvas id="minimapCanvas"></canvas></div>
-<div id="crosshair"><span></span></div>
+<div id="radarWrap">
+  <canvas id="minimapCanvas"></canvas>
+  <div id="radarHudInfo">
+    <div class="radarText top-left">
+      AUTOTUNE<br>
+      DISP 3<br>
+      ANT 1 MAIN<br>
+      MODE <span id="radarMode">FLIGHT</span><br>
+      CREW <span id="radarCrew">0/5</span>
+    </div>
+    <div class="radarText top-right">
+      ALT <span id="radarAlt">0.00</span> KM<br>
+      NEAR <span id="radarNear">—</span><br>
+      DIST <span id="radarDist">0.00</span> KM<br>
+      O₂ <span id="radarO2">100</span>%<br>
+      TIME <span id="radarTime">72:00</span>
+    </div>
+    <div class="radarText bottom-left">
+      AISD
+    </div>
+    <div class="radarText bottom-right">
+      A/C AUTO<br><br>
+      TRUE TRIAL<br>
+      3 MIN
+    </div>
+  </div>
+</div>
 
 <div id="overlay">
   <div id="overlayBg" class="bg1"></div>
@@ -508,11 +539,11 @@ const I18N = {
     ovQuote:'«Мы не ищем других. Мы ищем себя — в чужих зеркалах».<br>— Станислав Лем',
     ovMore:'ПОДРОБНЕЕ', ovLess:'СВЕРНУТЬ',
     brGoal:'<b>ЦЕЛЬ:</b> спасти пятерых членов экипажа «Пиркс» и вернуться к ракете до истечения таймера.',
-    brPC:'<b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.',
-    brMobile:'<b>УПРАВЛЕНИЕ (моб.):</b> свайп по экрану — обзор · двойной тап — переключить ПОЛЁТ / ХОД.',
-    brWarn:'<b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее.',
-    brO2:'<b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон до 100%.',
-    brCrew:'<b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Следите за бортжурналом.',
+    brPC:'<b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор и высота в ПОЛЁТЕ · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.',
+    brMobile:'<b>УПРАВЛЕНИЕ (моб.):</b> свайп — обзор и высота в ПОЛЁТЕ · двойной тап — переключить ПОЛЁТ / ХОД.',
+    brWarn:'<b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее. Высота полёта — до 2 км.',
+    brO2:'<b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон на +100% (максимум 200%).',
+    brCrew:'<b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Каждый спасённый увеличивает расход кислорода на 25%.',
     brFinal:'<b>ФИНАЛ:</b> когда все пятеро спасены, идите к ракете — миссия завершится.',
     finHeader:'◆ ФИНАЛ',
     goalRescue:'Спасти экипаж и вернуться к ракете', goalReturn:'Добраться до ракеты',
@@ -541,11 +572,11 @@ const I18N = {
     ovQuote:'«We do not seek others. We seek ourselves — in others\' mirrors».<br>— Stanisław Lem',
     ovMore:'MORE', ovLess:'COLLAPSE',
     brGoal:'<b>GOAL:</b> rescue all five crew members of «Pirx» and return to the rocket before the timer runs out.',
-    brPC:'<b>CONTROLS (PC):</b> W A S D — move · mouse — look · SPACE or right mouse button — toggle FLIGHT / WALK · R — jump · SHIFT — sprint.',
-    brMobile:'<b>CONTROLS (mobile):</b> swipe — look · double tap — toggle FLIGHT / WALK.',
-    brWarn:'<b>WARNING:</b> in FLIGHT mode you move faster, but oxygen drains twice as fast.',
-    brO2:'<b>OXYGEN:</b> blue markers — O₂ depots. Get close to refill the tank to 100%.',
-    brCrew:'<b>CREW:</b> red markers — crew members. Get close to pick them up. Watch the flight log.',
+    brPC:'<b>CONTROLS (PC):</b> W A S D — move · mouse — look and altitude in FLIGHT · SPACE or right mouse button — toggle FLIGHT / WALK · R — jump · SHIFT — sprint.',
+    brMobile:'<b>CONTROLS (mobile):</b> swipe — look and altitude in FLIGHT · double tap — toggle FLIGHT / WALK.',
+    brWarn:'<b>WARNING:</b> in FLIGHT mode you move faster, but oxygen drains twice as fast. Max altitude — 2 km.',
+    brO2:'<b>OXYGEN:</b> blue markers — O₂ depots. Get close to refill the tank by +100% (max 200%).',
+    brCrew:'<b>CREW:</b> red markers — crew members. Get close to pick them up. Each rescued member increases oxygen drain by 25%.',
     brFinal:'<b>FINALE:</b> when all five are rescued, head to the rocket — the mission will end.',
     finHeader:'◆ FINALE',
     goalRescue:'Rescue the crew and return to the rocket', goalReturn:'Reach the rocket',
@@ -934,8 +965,8 @@ smoothed.set(smoothed2);
 
 {
   const PAD_CANDIDATES = [{ x: CRATER_FLOOR.x, z: CRATER_FLOOR.z }];
-  const smoothR = 260;   // плоская зона
-  const blendR  = 900;   // длинный плавный переход к рельефу
+  const smoothR = 260;
+  const blendR  = 900;
   for (const C of PAD_CANDIDATES) {
     let sum = 0, cnt = 0;
     for (let i = 0; i < posAttr.count; i++) {
@@ -949,13 +980,12 @@ smoothed.set(smoothed2);
       const vx = posAttr.getX(i), vz = posAttr.getZ(i);
       const d = Math.hypot(vx - C.x, vz - C.z);
       if (d > blendR) continue;
-      // Одна непрерывная кривая: 1 внутри smoothR, 0 на blendR
       let eased;
       if (d <= smoothR) {
         eased = 1.0;
       } else {
         const u = (d - smoothR) / (blendR - smoothR);
-        const s = u * u * (3 - 2 * u);   // smoothstep
+        const s = u * u * (3 - 2 * u);
         eased = 1.0 - s;
       }
       smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
@@ -1615,11 +1645,8 @@ function buildFullLaunchPad() {
   return group;
 }
 
-/* Отдельные постройки на реальном рельефе (VAB и дальние маяки) */
 function buildDistantStructures(padX, padZ) {
   const group = new THREE.Group();
-
-  // VAB
   const vabPos = { x: padX - 160, z: padZ };
   const vabY = sampleHeight(vabPos.x, vabPos.z);
   const vab = new THREE.Group(); vab.position.set(vabPos.x, vabY, vabPos.z);
@@ -1627,8 +1654,6 @@ function buildDistantStructures(padX, padZ) {
   vab.add(padMesh(new THREE.BoxGeometry(6.4,0.5,7.9), PAD_MATS.dark, [0,6.1,0]));
   vab.add(padMesh(new THREE.BoxGeometry(2.25,3.5,0.2), PAD_MATS.red, [0,2.25,3.8]));
   group.add(vab);
-
-  // Дальние маяки
   for(let i=0;i<3;i++){
     const a=i/3*Math.PI*2+1.1, x=padX + Math.cos(a)*430, z=padZ + Math.sin(a)*430;
     const y = sampleHeight(x, z);
@@ -1638,7 +1663,6 @@ function buildDistantStructures(padX, padZ) {
     g.add(padMesh(new THREE.SphereGeometry(1.1,10,8), PAD_MATS.beacon, [0,164,0]));
     group.add(g);
   }
-
   return group;
 }
 
@@ -1899,18 +1923,15 @@ function spawnObjects() {
     o2Items.push(mesh);
   });
 
-  /* Площадка — на дне самого глубокого кратера */
   const padSpot = { x: CRATER_FLOOR.x, z: CRATER_FLOOR.z };
   const padY = LAUNCH_PAD_Y;
   const pad = buildFullLaunchPad();
   pad.position.set(padSpot.x, padY, padSpot.z);
   scene.add(pad);
 
-  /* Ракета — на площадке */
   rocket.position.set(padSpot.x, padY, padSpot.z);
   rocket.rotation.set(0, 0, 0);
 
-  /* Отдельные объекты на реальном рельефе */
   const distant = buildDistantStructures(padSpot.x, padSpot.z);
   scene.add(distant);
 
@@ -1929,6 +1950,15 @@ let yaw = -Math.PI/4, pitch = 0;
 let velocityY = 0, onGround = true;
 let flightMode = true;
 
+/* --- Плавное управление высотой --- */
+let flightAltitude = 0;           // целевая высота над рельефом (м)
+let flightAltitudeSmooth = 0;     // сглаженная текущая высота
+const FLIGHT_MAX_ALT = 2000;      // максимум 2 км
+const FLIGHT_ALT_SENS = 18;       // чувствительность мыши
+const FLIGHT_ALT_SENS_TOUCH = 45; // чувствительность свайпа
+const FLIGHT_ALT_LERP = 1.6;      // сглаживание (меньше — плавнее)
+const MIN_CLEARANCE = 2.5;        // минимальный зазор над рельефом
+
 function updateMoveState() {
   const btn = document.getElementById('flightBtn');
   btn.textContent = flightMode ? T().flight : T().walk;
@@ -1936,6 +1966,14 @@ function updateMoveState() {
 }
 function toggleFlight() {
   flightMode = !flightMode;
+  if (flightMode) {
+    const hHere = sampleHeightMax(camera.position.x, camera.position.z, 3.0);
+    flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, camera.position.y - hHere - MIN_CLEARANCE));
+    flightAltitudeSmooth = flightAltitude;
+    pitch = 0;
+  } else {
+    velocityY = 0;
+  }
   updateMoveState();
   playChime(flightMode ? 660 : 440, 0.15, 'sine', 0.08);
 }
@@ -1977,15 +2015,52 @@ renderer.domElement.addEventListener('mousedown', e => {
 addEventListener('mousemove', e => {
   if (document.pointerLockElement === renderer.domElement) {
     yaw -= e.movementX * 0.0016;
-    pitch -= e.movementY * 0.0016;
-    pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+    if (flightMode) {
+      flightAltitude -= e.movementY * FLIGHT_ALT_SENS;
+      flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, flightAltitude));
+    } else {
+      pitch -= e.movementY * 0.0016;
+      pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+    }
   }
 });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 let lastTouchX = 0, lastTouchY = 0, lastTapTime = 0, touchStartTime = 0, touchMoved = false;
-renderer.domElement.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length === 1) { lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; touchStartTime = Date.now(); touchMoved = false; } }, {passive:false});
-renderer.domElement.addEventListener('touchmove', e => { e.preventDefault(); if (e.touches.length === 1) { const dx = e.touches[0].clientX - lastTouchX, dy = e.touches[0].clientY - lastTouchY; if (Math.abs(dx) > 2 || Math.abs(dy) > 2) touchMoved = true; yaw -= dx * 0.0035; pitch -= dy * 0.0035; pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch)); lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; } }, {passive:false});
-renderer.domElement.addEventListener('touchend', e => { e.preventDefault(); const now = Date.now(); if (!touchMoved && now - touchStartTime < 200) { if (now - lastTapTime < 300) { toggleFlight(); } lastTapTime = now; } }, {passive:false});
+renderer.domElement.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    touchMoved = false;
+  }
+}, {passive:false});
+renderer.domElement.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const dx = e.touches[0].clientX - lastTouchX;
+    const dy = e.touches[0].clientY - lastTouchY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) touchMoved = true;
+    yaw -= dx * 0.0035;
+    if (flightMode) {
+      flightAltitude -= dy * FLIGHT_ALT_SENS_TOUCH;
+      flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, flightAltitude));
+    } else {
+      pitch -= dy * 0.0035;
+      pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+    }
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+  }
+}, {passive:false});
+renderer.domElement.addEventListener('touchend', e => {
+  e.preventDefault();
+  const now = Date.now();
+  if (!touchMoved && now - touchStartTime < 200) {
+    if (now - lastTapTime < 300) { toggleFlight(); }
+    lastTapTime = now;
+  }
+}, {passive:false});
 
 const flightBtn = document.getElementById('flightBtn');
 flightBtn.addEventListener('click', e => { e.stopPropagation(); toggleFlight(); });
@@ -2006,84 +2081,218 @@ document.getElementById('ovMoreBtn').addEventListener('click', (e) => {
   btn.textContent = isHidden ? T().ovMore : T().ovLess;
 });
 
-/* МИНИ-КАРТА */
+/* ============================================================
+   РАДАР (белый, полупрозрачный)
+   ============================================================ */
 const minimapCanvas = document.getElementById('minimapCanvas');
 const mmCtx = minimapCanvas.getContext('2d');
-let mmSize = 280;
+let mmSize = 340;
 const mmDpr = Math.min(devicePixelRatio, 2);
 const MINIMAP_RANGE = 4000;
+
+let radarSweepAngle = 0;
+let radarSmoothedAngle = -yaw;
+
 function resizeMinimap() {
   const rect = minimapCanvas.getBoundingClientRect();
-  mmSize = rect.width || 280;
-  minimapCanvas.width = mmSize * mmDpr;
+  mmSize = rect.width || 340;
+  minimapCanvas.width  = mmSize * mmDpr;
   minimapCanvas.height = mmSize * mmDpr;
-  mmCtx.setTransform(mmDpr,0,0,mmDpr,0,0);
+  mmCtx.setTransform(mmDpr, 0, 0, mmDpr, 0, 0);
 }
 setTimeout(resizeMinimap, 100);
 
 function updateMinimap() {
   const w = mmSize, h = mmSize;
-  const cx = w/2, cy = h/2;
-  let bgLight = false;
-  try {
-    const gl = renderer.getContext();
-    const px = new Uint8Array(4);
-    const screenX = Math.floor((innerWidth/2) * renderer.getPixelRatio());
-    const screenY = Math.floor((innerHeight/2 - 100) * renderer.getPixelRatio());
-    gl.readPixels(Math.min(gl.drawingBufferWidth-1, Math.max(0, screenX)), Math.min(gl.drawingBufferHeight-1, Math.max(0, screenY)), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    const lum = 0.299*px[0] + 0.587*px[1] + 0.114*px[2];
-    bgLight = lum > 160;
-  } catch(e) { bgLight = false; }
-
-  const lineColor = bgLight ? 'rgba(0,0,0,.95)' : 'rgba(255,255,255,.95)';
-  const gridColor = bgLight ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.5)';
-  const axisColor = bgLight ? 'rgba(0,0,0,.75)' : 'rgba(255,255,255,.7)';
+  const cx = w / 2, cy = h / 2;
+  const R_OUTER = w / 2 - 2;
+  const R_INNER = w * 0.005;
+  const RING_COUNT = 6;
 
   mmCtx.clearRect(0, 0, w, h);
-  mmCtx.strokeStyle = lineColor; mmCtx.lineWidth = 1.0;
-  mmCtx.beginPath(); mmCtx.arc(cx, cy, w/2 - 6, 0, Math.PI*2); mmCtx.stroke();
-  mmCtx.strokeStyle = gridColor; mmCtx.lineWidth = 0.8;
-  for (let r = 1; r <= 3; r++){ mmCtx.beginPath(); mmCtx.arc(cx, cy, (w/2 - 16) * r/3, 0, Math.PI*2); mmCtx.stroke(); }
-  mmCtx.strokeStyle = axisColor; mmCtx.lineWidth = 0.8;
+
+  mmCtx.save();
   mmCtx.beginPath();
-  mmCtx.moveTo(cx, cy - (w/2 - 16)); mmCtx.lineTo(cx, cy + (w/2 - 16));
-  mmCtx.moveTo(cx - (w/2 - 16), cy); mmCtx.lineTo(cx + (w/2 - 16), cy);
+  mmCtx.arc(cx, cy, R_OUTER, 0, Math.PI * 2);
+  mmCtx.clip();
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+  mmCtx.lineWidth = 0.6;
+  const gridStep = w / 14;
+  for (let x = 0; x < w; x += gridStep) {
+    mmCtx.beginPath(); mmCtx.moveTo(x, 0); mmCtx.lineTo(x, h); mmCtx.stroke();
+  }
+  for (let y = 0; y < h; y += gridStep) {
+    mmCtx.beginPath(); mmCtx.moveTo(0, y); mmCtx.lineTo(w, y); mmCtx.stroke();
+  }
+  mmCtx.restore();
+
+  mmCtx.beginPath();
+  mmCtx.arc(cx, cy, R_OUTER, 0, Math.PI * 2);
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.55)';
+  mmCtx.lineWidth = 1.2;
   mmCtx.stroke();
 
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.30)';
+  mmCtx.lineWidth = 0.7;
+  for (let i = 1; i <= RING_COUNT; i++) {
+    const r = R_INNER + (R_OUTER - R_INNER) * (i / RING_COUNT);
+    mmCtx.beginPath();
+    mmCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    mmCtx.stroke();
+  }
+
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.22)';
+  mmCtx.lineWidth = 0.6;
+  for (let a = 0; a < 360; a += 10) {
+    const rad = (a - 90) * Math.PI / 180;
+    const x1 = cx + Math.cos(rad) * R_INNER;
+    const y1 = cy + Math.sin(rad) * R_INNER;
+    const x2 = cx + Math.cos(rad) * R_OUTER;
+    const y2 = cy + Math.sin(rad) * R_OUTER;
+    mmCtx.beginPath();
+    mmCtx.moveTo(x1, y1);
+    mmCtx.lineTo(x2, y2);
+    mmCtx.stroke();
+  }
+
+  mmCtx.fillStyle = 'rgba(255,255,255,0.75)';
+  mmCtx.font = `${Math.max(8, w * 0.028)}px ui-monospace, monospace`;
+  mmCtx.textAlign = 'center';
+  mmCtx.textBaseline = 'middle';
+  for (let a = 0; a < 360; a += 10) {
+    const rad = (a - 90) * Math.PI / 180;
+    const labelR = R_OUTER - w * 0.045;
+    const tx = cx + Math.cos(rad) * labelR;
+    const ty = cy + Math.sin(rad) * labelR;
+    const label = a === 0 ? '0' : String(a);
+    mmCtx.fillText(label, tx, ty);
+  }
+
+  radarSweepAngle = (radarSweepAngle + 1.4) % 360;
+  const sweepRad = (radarSweepAngle - 90) * Math.PI / 180;
+  const sweepWidth = 55 * Math.PI / 180;
+
+  const sweepGrad = mmCtx.createRadialGradient(cx, cy, R_INNER, cx, cy, R_OUTER);
+  sweepGrad.addColorStop(0.0, 'rgba(255,255,255,0.45)');
+  sweepGrad.addColorStop(0.55, 'rgba(255,255,255,0.18)');
+  sweepGrad.addColorStop(1.0, 'rgba(255,255,255,0.0)');
+
+  mmCtx.beginPath();
+  mmCtx.moveTo(cx, cy);
+  mmCtx.arc(cx, cy, R_OUTER, sweepRad - sweepWidth / 2, sweepRad + sweepWidth / 2);
+  mmCtx.closePath();
+  mmCtx.fillStyle = sweepGrad;
+  mmCtx.fill();
+
+  mmCtx.beginPath();
+  mmCtx.moveTo(cx, cy);
+  mmCtx.lineTo(
+    cx + Math.cos(sweepRad + sweepWidth / 2) * R_OUTER,
+    cy + Math.sin(sweepRad + sweepWidth / 2) * R_OUTER
+  );
+  mmCtx.strokeStyle = 'rgba(255,255,255,0.9)';
+  mmCtx.lineWidth = 1.5;
+  mmCtx.shadowColor = 'rgba(255,255,255,0.9)';
+  mmCtx.shadowBlur = 8;
+  mmCtx.stroke();
+  mmCtx.shadowBlur = 0;
+
   const px = camera.position.x, pz = camera.position.z;
-  if (typeof updateMinimap._smooth === 'undefined') updateMinimap._smooth = -yaw;
-  let angDiff = (-yaw) - updateMinimap._smooth;
-  while (angDiff > Math.PI) angDiff -= 2*Math.PI;
-  while (angDiff < -Math.PI) angDiff += 2*Math.PI;
-  updateMinimap._smooth += angDiff * 0.18;
-  const camAngle = updateMinimap._smooth;
-  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
-  const R_PX = w/2 - 16;
+  let angDiff = (-yaw) - radarSmoothedAngle;
+  while (angDiff > Math.PI) angDiff -= 2 * Math.PI;
+  while (angDiff < -Math.PI) angDiff += 2 * Math.PI;
+  radarSmoothedAngle += angDiff * 0.18;
+  const cosA = Math.cos(radarSmoothedAngle);
+  const sinA = Math.sin(radarSmoothedAngle);
+  const R_PX = R_OUTER - w * 0.02;
 
   function project(worldX, worldZ) {
     const dx = wrappedDelta(worldX - px);
     const dz = wrappedDelta(worldZ - pz);
-    const rx = dx*cosA - dz*sinA;
-    const rz = dx*sinA + dz*cosA;
+    const rx = dx * cosA - dz * sinA;
+    const rz = dx * sinA + dz * cosA;
     const dist = Math.hypot(rx, rz);
-    if (dist > MINIMAP_RANGE) return {x:0, y:0, inside:false};
-    return {x: cx + (rx/MINIMAP_RANGE)*R_PX, y: cy - (rz/MINIMAP_RANGE)*R_PX, inside:true};
+    if (dist > MINIMAP_RANGE) return { x: 0, y: 0, inside: false };
+    return {
+      x: cx + (rx / MINIMAP_RANGE) * R_PX,
+      y: cy - (rz / MINIMAP_RANGE) * R_PX,
+      inside: true
+    };
   }
+
   function drawCross(x, y, color, size) {
-    mmCtx.strokeStyle = color; mmCtx.lineWidth = 1.0;
+    mmCtx.save();
+    mmCtx.strokeStyle = color;
+    mmCtx.lineWidth = 1.2;
+    mmCtx.shadowColor = color;
+    mmCtx.shadowBlur = 6;
     const s = size * 3;
     mmCtx.beginPath();
     mmCtx.moveTo(x - s, y); mmCtx.lineTo(x + s, y);
     mmCtx.moveTo(x, y - s); mmCtx.lineTo(x, y + s);
     mmCtx.stroke();
+    mmCtx.restore();
   }
-  const crewColor = bgLight ? 'rgba(120,0,0,.95)' : 'rgba(220,70,70,.95)';
-  const o2Color   = bgLight ? 'rgba(0,40,120,.95)' : 'rgba(90,150,230,.95)';
-  const padColor  = bgLight ? 'rgba(0,0,0,.95)'   : 'rgba(255,255,255,.95)';
 
-  for (const item of crewItems) { if (item.userData.collected) continue; const p = project(item.position.x, item.position.z); if (p.inside) drawCross(p.x, p.y, crewColor, 4); }
-  for (const item of o2Items) { if (item.userData.used) continue; const p = project(item.position.x, item.position.z); if (p.inside) drawCross(p.x, p.y, o2Color, 4); }
-  if (crewSaved >= 5) { const p = project(rocket.position.x, rocket.position.z); if (p.inside) drawCross(p.x, p.y, padColor, 5); }
+  const crewColor = 'rgba(220,70,70,0.95)';
+  const o2Color   = 'rgba(90,150,230,0.95)';
+  const padColor  = 'rgba(255,255,255,0.95)';
+
+  for (const item of crewItems) {
+    if (item.userData.collected) continue;
+    const p = project(item.position.x, item.position.z);
+    if (p.inside) drawCross(p.x, p.y, crewColor, 4);
+  }
+  for (const item of o2Items) {
+    if (item.userData.used) continue;
+    const p = project(item.position.x, item.position.z);
+    if (p.inside) drawCross(p.x, p.y, o2Color, 4);
+  }
+  if (crewSaved >= 5) {
+    const p = project(rocket.position.x, rocket.position.z);
+    if (p.inside) drawCross(p.x, p.y, padColor, 5);
+  }
+
+  /* HUD-числа */
+  const groundY = sampleHeight(camera.position.x, camera.position.z);
+  const altM = Math.max(0, camera.position.y - groundY);
+  const altEl = document.getElementById('radarAlt');
+  if (altEl) altEl.textContent = (altM / 1000).toFixed(2);
+
+  let nearestDist = Infinity;
+  let nearestLabel = '—';
+  for (const item of crewItems) {
+    if (item.userData.collected) continue;
+    const d = Math.hypot(wrappedDelta(px - item.position.x), wrappedDelta(pz - item.position.z));
+    if (d < nearestDist) { nearestDist = d; nearestLabel = 'CREW'; }
+  }
+  for (const item of o2Items) {
+    if (item.userData.used) continue;
+    const d = Math.hypot(wrappedDelta(px - item.position.x), wrappedDelta(pz - item.position.z));
+    if (d < nearestDist) { nearestDist = d; nearestLabel = 'O₂'; }
+  }
+  if (crewSaved >= 5) {
+    const d = Math.hypot(wrappedDelta(px - rocket.position.x), wrappedDelta(pz - rocket.position.z));
+    if (d < nearestDist) { nearestDist = d; nearestLabel = 'ROCKET'; }
+  }
+
+  const nearEl = document.getElementById('radarNear');
+  const distEl = document.getElementById('radarDist');
+  if (nearEl) nearEl.textContent = nearestLabel;
+  if (distEl) distEl.textContent = isFinite(nearestDist) ? (nearestDist / 1000).toFixed(2) : '—';
+
+  const modeEl = document.getElementById('radarMode');
+  const crewEl = document.getElementById('radarCrew');
+  const o2El   = document.getElementById('radarO2');
+  const timeEl = document.getElementById('radarTime');
+  if (modeEl) modeEl.textContent = flightMode ? 'FLIGHT' : 'WALK';
+  if (crewEl) crewEl.textContent = crewSaved + '/5';
+  if (o2El) o2El.textContent = Math.round(oxygen);
+  if (timeEl) {
+    const m = Math.floor(missionTime / 60);
+    const s = Math.floor(missionTime % 60);
+    timeEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
 }
 
 /* СБОР / HUD */
@@ -2113,7 +2322,7 @@ function checkCollection(cx, cz) {
     if (dx*dx + dz*dz < 25) {
       item.userData.used = true;
       item.visible = false;
-      oxygen = 100;
+      oxygen = Math.min(200, oxygen + 100);
       playO2Pickup();
       speak(T().speakO2);
     }
@@ -2133,11 +2342,12 @@ function updateCrewList() {
 function updateHUD() {
   const o2 = Math.round(oxygen);
   const fill = document.getElementById('o2WideFill');
-  if (fill) fill.style.height = o2 + '%';
+  if (fill) fill.style.height = Math.min(100, o2) + '%';
   const panel = document.getElementById('o2WidePanel');
   if (panel) {
-    panel.classList.remove('warn','danger');
-    if (o2 < 30) panel.classList.add('danger');
+    panel.classList.remove('warn','danger','over');
+    if (o2 > 100) panel.classList.add('over');
+    else if (o2 < 30) panel.classList.add('danger');
     else if (o2 < 60) panel.classList.add('warn');
   }
   const pct = document.getElementById('o2BigPercent');
@@ -2381,7 +2591,6 @@ function rcLoop(now){
       showCredits();
     }
   }
-  /* Камера при титрах — строго сверху вниз на взлетающую ракету */
   if (creditsStarted) {
     const targetY = rcRocket.position.y + 26;
     rcControls.target.set(0, targetY, 0);
@@ -2603,22 +2812,51 @@ function animate() {
   while (camera.position.z > WORLD_HALF) camera.position.z -= WORLD_SIZE;
   while (camera.position.z < -WORLD_HALF) camera.position.z += WORLD_SIZE;
 
-  velocityY -= LUNAR_GRAVITY * dt;
-  if (keys['KeyR'] && onGround) { velocityY = JUMP_VELOCITY; onGround = false; }
-  camera.position.y += velocityY * dt;
-
   const hHere = sampleHeightMax(camera.position.x, camera.position.z, 3.0);
-  const gh = hHere + 2.5;
-  const lookAhead = velocityY < 0 ? velocityY*dt : 0;
-  const targetY = gh - lookAhead;
-  if (camera.position.y < targetY) {
-    camera.position.y = targetY;
-    if (velocityY < 0) velocityY = 0;
-    onGround = true;
-  } else { onGround = false; }
+
+  if (flightMode) {
+    /* --- ПОЛЁТ: очень плавный подъём/спуск --- */
+    flightAltitudeSmooth += (flightAltitude - flightAltitudeSmooth) * Math.min(1, dt * FLIGHT_ALT_LERP);
+
+    const targetY = hHere + MIN_CLEARANCE + flightAltitudeSmooth;
+    camera.position.y += (targetY - camera.position.y) * Math.min(1, dt * FLIGHT_ALT_LERP);
+
+    /* жёсткая защита снизу */
+    const hardMinY = hHere + MIN_CLEARANCE;
+    if (camera.position.y < hardMinY) camera.position.y = hardMinY;
+
+    /* ограничение сверху */
+    const hardMaxY = hHere + MIN_CLEARANCE + FLIGHT_MAX_ALT;
+    if (camera.position.y > hardMaxY) camera.position.y = hardMaxY;
+
+    velocityY = 0;
+    onGround = false;
+  } else {
+    velocityY -= LUNAR_GRAVITY * dt;
+    if (keys['KeyR'] && onGround) { velocityY = JUMP_VELOCITY; onGround = false; }
+    camera.position.y += velocityY * dt;
+
+    const gh = hHere + MIN_CLEARANCE;
+    const lookAhead = velocityY < 0 ? velocityY*dt : 0;
+    const targetY = gh - lookAhead;
+    if (camera.position.y < targetY) {
+      camera.position.y = targetY;
+      if (velocityY < 0) velocityY = 0;
+      onGround = true;
+    } else { onGround = false; }
+
+    /* жёсткая защита снизу */
+    const hardMinY = hHere + MIN_CLEARANCE;
+    if (camera.position.y < hardMinY) {
+      camera.position.y = hardMinY;
+      if (velocityY < 0) velocityY = 0;
+      onGround = true;
+    }
+  }
+
   camera.rotation.order = 'YXZ';
   camera.rotation.y = yaw;
-  camera.rotation.x = pitch;
+  camera.rotation.x = flightMode ? 0 : pitch;
 
   earthGroup.position.set(camera.position.x + EARTH_OFFSET.x, camera.position.y + EARTH_OFFSET.y, camera.position.z + EARTH_OFFSET.z);
   earth.rotation.y += dt * (Math.PI * 2 / 20);
@@ -2628,7 +2866,8 @@ function animate() {
 
   if (!missionFailed && !missionComplete) {
     const o2Rate = flightMode ? 2 : 1;
-    oxygen -= dt * 0.10 * o2Rate;
+    const crewPenalty = 1 + crewSaved * 0.25;
+    oxygen -= dt * 0.10 * o2Rate * crewPenalty;
     if (oxygen <= 0) { oxygen = 0; triggerFailure('o2'); }
     else if (oxygen < 20 && now - lastWarningTime > 2000) { lastWarningTime = now; playWarning(); }
     missionTime -= dt;
