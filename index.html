@@ -477,16 +477,17 @@ function resumeAllAudio(){
   startLuQueue();
 }
 
+/* --- Музыка НЕ останавливается во время рекламы и при скрытии вкладки --- */
 if (typeof vkBridge !== 'undefined') {
   try {
     vkBridge.subscribe((e) => {
-      if (e.detail.type === 'VKWebAppViewHide') pauseAllAudio();
-      else if (e.detail.type === 'VKWebAppViewRestore') resumeAllAudio();
+      // Ничего не делаем — музыка должна продолжать играть.
+      // Если понадобится логика на события VK — добавить здесь.
     });
   } catch(e) {}
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pauseAllAudio(); else resumeAllAudio();
+  // Намеренно ничего не делаем — не глушим музыку.
 });
 
 function switchToMoby() {
@@ -541,7 +542,7 @@ const I18N = {
     brGoal:'<b>ЦЕЛЬ:</b> спасти пятерых членов экипажа «Пиркс» и вернуться к ракете до истечения таймера.',
     brPC:'<b>УПРАВЛЕНИЕ (ПК):</b> W A S D — движение · мышь — обзор и высота в ПОЛЁТЕ · ПРОБЕЛ или правая кнопка мыши — переключить ПОЛЁТ / ХОД · R — прыжок · SHIFT — ускорение.',
     brMobile:'<b>УПРАВЛЕНИЕ (моб.):</b> свайп — обзор и высота в ПОЛЁТЕ · двойной тап — переключить ПОЛЁТ / ХОД.',
-    brWarn:'<b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее. Высота полёта — до 2 км.',
+    brWarn:'<b>ВНИМАНИЕ:</b> в режиме ПОЛЁТ вы двигаетесь быстрее, но кислород тратится в два раза активнее. Высота полёта — до 2.28 км.',
     brO2:'<b>КИСЛОРОД:</b> синие метки — склады O₂. Подойдите вплотную, чтобы пополнить баллон на +100% (максимум 200%).',
     brCrew:'<b>ЭКИПАЖ:</b> красные метки — члены экипажа. Подойдите вплотную, чтобы подобрать. Каждый спасённый увеличивает расход кислорода на 25%.',
     brFinal:'<b>ФИНАЛ:</b> когда все пятеро спасены, идите к ракете — миссия завершится.',
@@ -574,7 +575,7 @@ const I18N = {
     brGoal:'<b>GOAL:</b> rescue all five crew members of «Pirx» and return to the rocket before the timer runs out.',
     brPC:'<b>CONTROLS (PC):</b> W A S D — move · mouse — look and altitude in FLIGHT · SPACE or right mouse button — toggle FLIGHT / WALK · R — jump · SHIFT — sprint.',
     brMobile:'<b>CONTROLS (mobile):</b> swipe — look and altitude in FLIGHT · double tap — toggle FLIGHT / WALK.',
-    brWarn:'<b>WARNING:</b> in FLIGHT mode you move faster, but oxygen drains twice as fast. Max altitude — 2 km.',
+    brWarn:'<b>WARNING:</b> in FLIGHT mode you move faster, but oxygen drains twice as fast. Max altitude — 2.28 km.',
     brO2:'<b>OXYGEN:</b> blue markers — O₂ depots. Get close to refill the tank by +100% (max 200%).',
     brCrew:'<b>CREW:</b> red markers — crew members. Get close to pick them up. Each rescued member increases oxygen drain by 25%.',
     brFinal:'<b>FINALE:</b> when all five are rescued, head to the rocket — the mission will end.',
@@ -1950,13 +1951,9 @@ let yaw = -Math.PI/4, pitch = 0;
 let velocityY = 0, onGround = true;
 let flightMode = true;
 
-/* --- Плавное управление высотой --- */
-let flightAltitude = 0;           // целевая высота над рельефом (м)
-let flightAltitudeSmooth = 0;     // сглаженная текущая высота
-const FLIGHT_MAX_ALT = 2000;      // максимум 2 км
-const FLIGHT_ALT_SENS = 18;       // чувствительность мыши
-const FLIGHT_ALT_SENS_TOUCH = 45; // чувствительность свайпа
-const FLIGHT_ALT_LERP = 1.6;      // сглаживание (меньше — плавнее)
+/* --- Параметры полёта --- */
+const FLIGHT_MAX_ALT = 2280;      // максимум 2.28 км
+const FREE_FALL_MULT = 2.0;       // свободное падение в 2 раза быстрее
 const MIN_CLEARANCE = 2.5;        // минимальный зазор над рельефом
 
 function updateMoveState() {
@@ -1966,12 +1963,7 @@ function updateMoveState() {
 }
 function toggleFlight() {
   flightMode = !flightMode;
-  if (flightMode) {
-    const hHere = sampleHeightMax(camera.position.x, camera.position.z, 3.0);
-    flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, camera.position.y - hHere - MIN_CLEARANCE));
-    flightAltitudeSmooth = flightAltitude;
-    pitch = 0;
-  } else {
+  if (!flightMode) {
     velocityY = 0;
   }
   updateMoveState();
@@ -1986,7 +1978,6 @@ addEventListener('keyup', e => keys[e.code] = false);
    ============================================================ */
 document.getElementById('overlay').addEventListener('click', async () => {
   if (missionSuccessFinished) {
-    // успешный финал — сначала rewarded, потом перезагрузка
     await showRewardedAd();
     location.reload();
     return;
@@ -2021,13 +2012,8 @@ renderer.domElement.addEventListener('mousedown', e => {
 addEventListener('mousemove', e => {
   if (document.pointerLockElement === renderer.domElement) {
     yaw -= e.movementX * 0.0016;
-    if (flightMode) {
-      flightAltitude -= e.movementY * FLIGHT_ALT_SENS;
-      flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, flightAltitude));
-    } else {
-      pitch -= e.movementY * 0.0016;
-      pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
-    }
+    pitch -= e.movementY * 0.0016;
+    pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
   }
 });
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
@@ -2048,13 +2034,8 @@ renderer.domElement.addEventListener('touchmove', e => {
     const dy = e.touches[0].clientY - lastTouchY;
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) touchMoved = true;
     yaw -= dx * 0.0035;
-    if (flightMode) {
-      flightAltitude -= dy * FLIGHT_ALT_SENS_TOUCH;
-      flightAltitude = Math.max(0, Math.min(FLIGHT_MAX_ALT, flightAltitude));
-    } else {
-      pitch -= dy * 0.0035;
-      pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
-    }
+    pitch -= dy * 0.0035;
+    pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
     lastTouchX = e.touches[0].clientX;
     lastTouchY = e.touches[0].clientY;
   }
@@ -2823,24 +2804,29 @@ function animate() {
   const hHere = sampleHeightMax(camera.position.x, camera.position.z, 3.0);
 
   if (flightMode) {
-    /* --- ПОЛЁТ: очень плавный подъём/спуск --- */
-    flightAltitudeSmooth += (flightAltitude - flightAltitudeSmooth) * Math.min(1, dt * FLIGHT_ALT_LERP);
+    /* --- ПОЛЁТ: свободное движение по направлению взгляда --- */
+    // Вертикальная составляющая зависит от pitch (наклон вниз/вверх)
+    const vertSpeed = Math.sin(pitch) * speed;
+    camera.position.y += vertSpeed * dt;
 
-    const targetY = hHere + MIN_CLEARANCE + flightAltitudeSmooth;
-    camera.position.y += (targetY - camera.position.y) * Math.min(1, dt * FLIGHT_ALT_LERP);
+    // Горизонтальная скорость чуть уменьшается при взгляде вниз/вверх
+    // (чтобы полёт вниз не был таким же быстрым по горизонтали, как горизонтальный полёт)
+    const cosP = Math.cos(pitch);
+    camera.position.x += horizVel.x * (cosP - 1) * dt;
+    camera.position.z += horizVel.z * (cosP - 1) * dt;
 
     /* жёсткая защита снизу */
     const hardMinY = hHere + MIN_CLEARANCE;
     if (camera.position.y < hardMinY) camera.position.y = hardMinY;
 
-    /* ограничение сверху */
+    /* ограничение сверху: 2.28 км над рельефом */
     const hardMaxY = hHere + MIN_CLEARANCE + FLIGHT_MAX_ALT;
     if (camera.position.y > hardMaxY) camera.position.y = hardMaxY;
 
     velocityY = 0;
     onGround = false;
   } else {
-    velocityY -= LUNAR_GRAVITY * dt;
+    velocityY -= LUNAR_GRAVITY * FREE_FALL_MULT * dt;
     if (keys['KeyR'] && onGround) { velocityY = JUMP_VELOCITY; onGround = false; }
     camera.position.y += velocityY * dt;
 
@@ -2864,7 +2850,7 @@ function animate() {
 
   camera.rotation.order = 'YXZ';
   camera.rotation.y = yaw;
-  camera.rotation.x = flightMode ? 0 : pitch;
+  camera.rotation.x = pitch;
 
   earthGroup.position.set(camera.position.x + EARTH_OFFSET.x, camera.position.y + EARTH_OFFSET.y, camera.position.z + EARTH_OFFSET.z);
   earth.rotation.y += dt * (Math.PI * 2 / 20);
