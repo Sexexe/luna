@@ -1928,12 +1928,15 @@ function spawnObjects() {
   const padY = LAUNCH_PAD_Y;
   const pad = buildFullLaunchPad();
   pad.position.set(padSpot.x, padY, padSpot.z);
+  pad.traverse(o => { o.frustumCulled = false; });
   scene.add(pad);
 
   rocket.position.set(padSpot.x, padY, padSpot.z);
   rocket.rotation.set(0, 0, 0);
+  rocket.traverse(o => { o.frustumCulled = false; });
 
   const distant = buildDistantStructures(padSpot.x, padSpot.z);
+  distant.traverse(o => { o.frustumCulled = false; });
   scene.add(distant);
 
   window.launchPadPosition = new THREE.Vector3(padSpot.x, padY, padSpot.z);
