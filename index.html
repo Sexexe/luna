@@ -477,18 +477,12 @@ function resumeAllAudio(){
   startLuQueue();
 }
 
-/* --- Музыка НЕ останавливается во время рекламы и при скрытии вкладки --- */
 if (typeof vkBridge !== 'undefined') {
   try {
-    vkBridge.subscribe((e) => {
-      // Ничего не делаем — музыка должна продолжать играть.
-      // Если понадобится логика на события VK — добавить здесь.
-    });
+    vkBridge.subscribe((e) => {});
   } catch(e) {}
 }
-document.addEventListener('visibilitychange', () => {
-  // Намеренно ничего не делаем — не глушим музыку.
-});
+document.addEventListener('visibilitychange', () => {});
 
 function switchToMoby() {
   stopLuQueue();
@@ -798,6 +792,22 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
+/* --- ENV MAP: чтобы металл реально блестел --- */
+const __pmrem = new THREE.PMREMGenerator(renderer);
+__pmrem.compileEquirectangularShader();
+const __envScene = new THREE.Scene();
+__envScene.background = new THREE.Color(0x1a2230);
+const __envLight1 = new THREE.DirectionalLight(0xffffff, 4.0);
+__envLight1.position.set(1, 2, 1);
+__envScene.add(__envLight1);
+const __envLight2 = new THREE.DirectionalLight(0xffe8c0, 2.5);
+__envLight2.position.set(-1, 1, -1);
+__envScene.add(__envLight2);
+const __envAmbient = new THREE.AmbientLight(0x445566, 1.0);
+__envScene.add(__envAmbient);
+const __envRT = __pmrem.fromScene(__envScene, 0.04);
+scene.environment = __envRT.texture;
+
 const skyCanvas = document.createElement('canvas');
 skyCanvas.width = 2; skyCanvas.height = 1024;
 const skyCtx = skyCanvas.getContext('2d');
@@ -900,17 +910,13 @@ function computeGroundH(x, z) {
   return h;
 }
 
-/* ---------- ПОИСК САМОГО ГЛУБОКОГО КРАТЕРА ---------- */
 function findDeepestCrater() {
   let best = null;
-  for (const c of craters) {
-    if (!best || c.d > best.d) best = c;
-  }
+  for (const c of craters) { if (!best || c.d > best.d) best = c; }
   return best;
 }
 const DEEPEST_CRATER = findDeepestCrater();
 
-/* ---------- ПОИСК РЕАЛЬНОГО ДНА КРАТЕРА ---------- */
 function findCraterFloor(crater) {
   let best = { x: crater.x, z: crater.z, y: Infinity };
   const R = crater.r * Math.max(0.1, crater.floorFlat) * 0.95;
@@ -982,13 +988,8 @@ smoothed.set(smoothed2);
       const d = Math.hypot(vx - C.x, vz - C.z);
       if (d > blendR) continue;
       let eased;
-      if (d <= smoothR) {
-        eased = 1.0;
-      } else {
-        const u = (d - smoothR) / (blendR - smoothR);
-        const s = u * u * (3 - 2 * u);
-        eased = 1.0 - s;
-      }
+      if (d <= smoothR) { eased = 1.0; }
+      else { const u = (d - smoothR) / (blendR - smoothR); const s = u * u * (3 - 2 * u); eased = 1.0 - s; }
       smoothed[i] = smoothed[i] * (1 - eased) + padH * eased;
     }
   }
@@ -998,10 +999,7 @@ terrainGeo.computeVertexNormals();
 {
   const colors = new Float32Array(posAttr.count * 3);
   const normals = terrainGeo.attributes.normal;
-  const smoothstepLocal = (a, b, x) => {
-    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
-    return t * t * (3 - 2 * t);
-  };
+  const smoothstepLocal = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   for (let i = 0; i < posAttr.count; i++) {
     const y = smoothed[i], ny = normals.getY(i);
     let r = 0.62, g = 0.60, b = 0.58;
@@ -1056,7 +1054,6 @@ function sampleHeightMax(x, z, r) {
   return h;
 }
 
-/* ЗВЁЗДЫ */
 function createStarTex(s) {
   const c = document.createElement('canvas'); c.width = c.height = s;
   const ctx = c.getContext('2d');
@@ -1157,7 +1154,6 @@ function makeMilkyWayStars() {
 }
 scene.add(makeMilkyWayStars());
 
-/* ЗЕМЛЯ */
 const earthGroup = new THREE.Group();
 earthGroup.matrixAutoUpdate = false;
 scene.add(earthGroup);
@@ -1643,6 +1639,7 @@ function buildFullLaunchPad() {
     for(let k=0;k<3;k++) g.add(padMesh(new THREE.BoxGeometry(0.9,0.7,0.3), PAD_MATS.lamp, [-1+k,44.6,0.7]));
     group.add(g);
   }
+  group.traverse(o => { o.frustumCulled = false; });
   return group;
 }
 
@@ -1664,7 +1661,50 @@ function buildDistantStructures(padX, padZ) {
     g.add(padMesh(new THREE.SphereGeometry(1.1,10,8), PAD_MATS.beacon, [0,164,0]));
     group.add(g);
   }
+  group.traverse(o => { o.frustumCulled = false; });
   return group;
+}
+
+/* ============ МЕТАЛЛИЧЕСКИЕ ТРУБКИ ДЛЯ КАРКАСА O₂ ============ */
+const O2_TUBE_MAT = new THREE.MeshStandardMaterial({
+  color: 0xdfe6ee,
+  roughness: 0.10,
+  metalness: 1.0,
+  emissive: 0x3a4450,
+  emissiveIntensity: 0.55,
+  envMapIntensity: 3.0
+});
+const O2_TUBE_MAT_DARK = new THREE.MeshStandardMaterial({
+  color: 0xaab3bd,
+  roughness: 0.14,
+  metalness: 1.0,
+  emissive: 0x2a323c,
+  emissiveIntensity: 0.5,
+  envMapIntensity: 2.6
+});
+const O2_TUBE_MAT_BAND = new THREE.MeshStandardMaterial({
+  color: 0xe8eef5,
+  roughness: 0.08,
+  metalness: 1.0,
+  emissive: 0x3a4450,
+  emissiveIntensity: 0.55,
+  envMapIntensity: 3.0
+});
+
+function o2Tube(a, b, radius, mat, radialSeg) {
+  radialSeg = radialSeg || 24;
+  const A = new THREE.Vector3(a[0], a[1], a[2]);
+  const B = new THREE.Vector3(b[0], b[1], b[2]);
+  const dir = new THREE.Vector3().subVectors(B, A);
+  const len = dir.length();
+  dir.normalize();
+  const geo = new THREE.CylinderGeometry(radius, radius, len, radialSeg, 1, false);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(A).addScaledVector(dir, len / 2);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 /* ОБЪЕКТЫ */
@@ -1747,22 +1787,26 @@ function createCrashSite() {
   astronaut.position.set(1.9, 0, 1.7);
   astronaut.rotation.y = Math.random() * Math.PI * 2;
   group.add(astronaut);
+
+  /* ----- КРАСНЫЙ МИГАЮЩИЙ КУПОЛ ВОКРУГ ЭКИПАЖА ----- */
   const glowTex = (() => {
     const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
     const x = c.getContext('2d');
     const g = x.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
-    g.addColorStop(0.00, 'rgba(200,184,154,0.65)');
-    g.addColorStop(0.25, 'rgba(200,184,154,0.42)');
-    g.addColorStop(0.55, 'rgba(200,184,154,0.18)');
-    g.addColorStop(0.80, 'rgba(200,184,154,0.06)');
-    g.addColorStop(1.00, 'rgba(200,184,154,0.00)');
+    g.addColorStop(0.00, 'rgba(255,40,40,0.78)');
+    g.addColorStop(0.25, 'rgba(255,40,40,0.52)');
+    g.addColorStop(0.55, 'rgba(255,40,40,0.22)');
+    g.addColorStop(0.80, 'rgba(255,40,40,0.07)');
+    g.addColorStop(1.00, 'rgba(255,40,40,0.00)');
     x.fillStyle = g; x.fillRect(0, 0, s, s);
     return new THREE.CanvasTexture(c);
   })();
   const glow = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 24),
-    new THREE.MeshBasicMaterial({map: glowTex, color:0xc8b89a, transparent:true,
+    new THREE.MeshBasicMaterial({map: glowTex, color:0xff2020, transparent:true,
       blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
   glow.position.y = 1; glow.userData.isCrewGlow = true; group.add(glow);
+
+  group.traverse(o => { o.frustumCulled = false; });
   return group;
 }
 
@@ -1782,48 +1826,121 @@ function makeO2LabelTexture() {
 }
 const o2LabelTex = makeO2LabelTexture();
 
+function makeLunaPirxTexture() {
+  const W = 1024, H = 512;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 220px Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(255,255,255,0.85)'; ctx.shadowBlur = 16;
+  ctx.fillText('lunapirx', W/2, H/2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return tex;
+}
+const lunaPirxTex = makeLunaPirxTexture();
+
 function createO2Cache() {
   const group = new THREE.Group();
   const SCALE = 2.0;
   const inner = new THREE.Group();
   inner.scale.set(SCALE, SCALE, SCALE);
   group.add(inner);
-  const frameMat = new THREE.MeshStandardMaterial({color:0x3a4550, roughness:0.55, metalness:0.7});
-  const baseFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 1.6), frameMat);
-  baseFrame.position.y = 0.08; baseFrame.castShadow = true; baseFrame.receiveShadow = true;
-  inner.add(baseFrame);
-  const beamMat = new THREE.MeshStandardMaterial({color:0x506070, roughness:0.5, metalness:0.8});
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.10, 3.0, 0.10), beamMat);
-    beam.position.set(sx*1.0, 1.5, sz*0.7);
-    beam.castShadow = true; inner.add(beam);
+
+  /* ----- МЕТАЛЛИЧЕСКИЙ КАРКАС ИЗ ТРУБОК ----- */
+  const TUBE_R = 0.055;
+  const TUBE_R_THIN = 0.035;
+  const W = 2.2, D = 1.6, H = 3.1;
+  const HW = W / 2, HD = D / 2;
+
+  const corners = [
+    [ HW, 0,  HD], [ HW, 0, -HD],
+    [-HW, 0,  HD], [-HW, 0, -HD]
+  ];
+  for (const c of corners) {
+    inner.add(o2Tube([c[0], 0.05, c[2]], [c[0], H, c[2]], TUBE_R, O2_TUBE_MAT, 28));
   }
-  const topFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 1.6), frameMat);
-  topFrame.position.y = 3.0; topFrame.castShadow = true; inner.add(topFrame);
-  const tankMat = new THREE.MeshStandardMaterial({ color: 0x2196f3, roughness: 0.32, metalness: 0.65, emissive: 0x0d47a1, emissiveIntensity: 0.35 });
+
+  const bottomY = 0.05, topY = H;
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % 4];
+    inner.add(o2Tube([a[0], bottomY, a[2]], [b[0], bottomY, b[2]], TUBE_R, O2_TUBE_MAT, 28));
+    inner.add(o2Tube([a[0], topY, a[2]], [b[0], topY, b[2]], TUBE_R, O2_TUBE_MAT, 28));
+  }
+
+  const mid1Y = H * 0.35;
+  const mid2Y = H * 0.70;
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % 4];
+    inner.add(o2Tube([a[0], mid1Y, a[2]], [b[0], mid1Y, b[2]], TUBE_R_THIN, O2_TUBE_MAT_DARK, 20));
+    inner.add(o2Tube([a[0], mid2Y, a[2]], [b[0], mid2Y, b[2]], TUBE_R_THIN, O2_TUBE_MAT_DARK, 20));
+  }
+
+  const sides = [
+    [ corners[0], corners[1] ],
+    [ corners[1], corners[2] ],
+    [ corners[2], corners[3] ],
+    [ corners[3], corners[0] ]
+  ];
+  for (const [a, b] of sides) {
+    inner.add(o2Tube([a[0], bottomY + 0.1, a[2]], [b[0], topY - 0.1, b[2]], TUBE_R_THIN, O2_TUBE_MAT_DARK, 16));
+    inner.add(o2Tube([a[0], topY - 0.1, a[2]], [b[0], bottomY + 0.1, b[2]], TUBE_R_THIN, O2_TUBE_MAT_DARK, 16));
+  }
+
+  for (const c of corners) {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(TUBE_R * 1.6, 20, 16), O2_TUBE_MAT_BAND);
+    cap.position.set(c[0], topY, c[2]);
+    cap.castShadow = true;
+    inner.add(cap);
+    const capBot = new THREE.Mesh(new THREE.SphereGeometry(TUBE_R * 1.6, 20, 16), O2_TUBE_MAT_BAND);
+    capBot.position.set(c[0], bottomY, c[2]);
+    capBot.castShadow = true;
+    inner.add(capBot);
+  }
+
+  /* ----- БАЛЛОН ----- */
+  const tankMat = new THREE.MeshStandardMaterial({
+    color: 0x2196f3, roughness: 0.32, metalness: 0.65,
+    emissive: 0x0d47a1, emissiveIntensity: 0.35
+  });
   const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 2.0, 32), tankMat);
   tank.position.y = 1.35; tank.castShadow = true; tank.receiveShadow = true; inner.add(tank);
   const tankTop = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 16, 0, Math.PI*2, 0, Math.PI/2), tankMat);
   tankTop.position.y = 2.35; tankTop.castShadow = true; inner.add(tankTop);
   const tankBot = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 16, 0, Math.PI*2, Math.PI/2, Math.PI/2), tankMat);
   tankBot.position.y = 0.35; tankBot.castShadow = true; inner.add(tankBot);
-  const bandMat = new THREE.MeshStandardMaterial({color:0x1a237e, roughness:0.6, metalness:0.4});
+
   for (const y of [0.85, 1.85]) {
-    const band = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.045, 10, 32), bandMat);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.045, 12, 40), O2_TUBE_MAT_BAND);
     band.rotation.x = Math.PI/2; band.position.y = y; band.castShadow = true; inner.add(band);
   }
-  const valveMat = new THREE.MeshStandardMaterial({color:0xb0b8c4, roughness:0.3, metalness:0.9});
-  const valveStem = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.3, 16), valveMat);
+
+  const valveMat = O2_TUBE_MAT_BAND;
+  const valveStem = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.3, 20), valveMat);
   valveStem.position.y = 2.55; inner.add(valveStem);
-  const valveWheel = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.03, 10, 20), valveMat);
+  const valveWheel = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.03, 12, 24), valveMat);
   valveWheel.rotation.x = Math.PI/2; valveWheel.position.y = 2.75; inner.add(valveWheel);
-  const vc1 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.03, 0.03), valveMat); vc1.position.y = 2.75; inner.add(vc1);
-  const vc2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.28), valveMat); vc2.position.y = 2.75; inner.add(vc2);
+  const vc1 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.28, 12), valveMat);
+  vc1.rotation.z = Math.PI/2; vc1.position.y = 2.75; inner.add(vc1);
+  const vc2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.28, 12), valveMat);
+  vc2.rotation.x = Math.PI/2; vc2.position.y = 2.75; inner.add(vc2);
+
   const labelMat = new THREE.MeshBasicMaterial({map: o2LabelTex, transparent: true, depthWrite: false, side: THREE.DoubleSide});
   for (const [x, y, z, ry] of [[0, 1.35, 0.64, 0], [0, 1.35, -0.64, Math.PI], [0.64, 1.35, 0, Math.PI/2], [-0.64, 1.35, 0, -Math.PI/2]]) {
     const l = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), labelMat);
     l.position.set(x, y, z); l.rotation.y = ry; inner.add(l);
   }
+
+  const lunaMat = new THREE.MeshBasicMaterial({map: lunaPirxTex, transparent: true, depthWrite: false, side: THREE.DoubleSide});
+  for (const [x, y, z, ry] of [[0, 0.55, 0.64, 0], [0, 0.55, -0.64, Math.PI], [0.64, 0.55, 0, Math.PI/2], [-0.64, 0.55, 0, -Math.PI/2]]) {
+    const l = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.42), lunaMat);
+    l.position.set(x, y, z); l.rotation.y = ry; inner.add(l);
+  }
+
   const hoseMat = new THREE.MeshStandardMaterial({color:0x101820, roughness:0.7, metalness:0.3});
   for (let i = 0; i < 3; i++) {
     const hose = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.035, 8, 16, Math.PI*1.3), hoseMat);
@@ -1831,9 +1948,11 @@ function createO2Cache() {
     hose.rotation.set(Math.PI/2, 0, -Math.PI/4 + i*0.3);
     hose.castShadow = true; inner.add(hose);
   }
+
   const indicatorMat = new THREE.MeshBasicMaterial({color:0x4fc3f7});
   const indicator = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), indicatorMat);
   indicator.position.set(0.7, 2.85, 0.4); inner.add(indicator);
+
   const o2GlowTex = (() => {
     const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
     const x = c.getContext('2d');
@@ -1855,6 +1974,8 @@ function createO2Cache() {
   const touchSphere = new THREE.Mesh(new THREE.SphereGeometry(7, 24, 18),
     new THREE.MeshBasicMaterial({map: o2GlowTex, color:0x4fc3f7, transparent:true, opacity:0.18, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
   touchSphere.position.y = 3.5; touchSphere.userData.isO2Touch = true; group.add(touchSphere);
+
+  group.traverse(o => { o.frustumCulled = false; });
   return group;
 }
 
@@ -1928,7 +2049,6 @@ function spawnObjects() {
   const padY = LAUNCH_PAD_Y;
   const pad = buildFullLaunchPad();
   pad.position.set(padSpot.x, padY, padSpot.z);
-  pad.traverse(o => { o.frustumCulled = false; });
   scene.add(pad);
 
   rocket.position.set(padSpot.x, padY, padSpot.z);
@@ -1936,7 +2056,6 @@ function spawnObjects() {
   rocket.traverse(o => { o.frustumCulled = false; });
 
   const distant = buildDistantStructures(padSpot.x, padSpot.z);
-  distant.traverse(o => { o.frustumCulled = false; });
   scene.add(distant);
 
   window.launchPadPosition = new THREE.Vector3(padSpot.x, padY, padSpot.z);
@@ -1954,10 +2073,9 @@ let yaw = -Math.PI/4, pitch = 0;
 let velocityY = 0, onGround = true;
 let flightMode = true;
 
-/* --- Параметры полёта --- */
-const FLIGHT_MAX_ALT = 2280;      // максимум 2.28 км
-const FREE_FALL_MULT = 2.0;       // свободное падение в 2 раза быстрее
-const MIN_CLEARANCE = 2.5;        // минимальный зазор над рельефом
+const FLIGHT_MAX_ALT = 2280;
+const FREE_FALL_MULT = 2.0;
+const MIN_CLEARANCE = 2.5;
 
 function updateMoveState() {
   const btn = document.getElementById('flightBtn');
@@ -1976,9 +2094,6 @@ function toggleFlight() {
 addEventListener('keydown', e => keys[e.code] = true);
 addEventListener('keyup', e => keys[e.code] = false);
 
-/* ============================================================
-   КЛИК ПО ОВЕРЛЕЮ — запуск игры
-   ============================================================ */
 document.getElementById('overlay').addEventListener('click', async () => {
   if (missionSuccessFinished) {
     await showRewardedAd();
@@ -1989,7 +2104,7 @@ document.getElementById('overlay').addEventListener('click', async () => {
     location.reload();
     return;
   }
-document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('overlay').classList.add('hidden');
   if (!isMobile && renderer.domElement.requestPointerLock) renderer.domElement.requestPointerLock();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -2072,7 +2187,7 @@ document.getElementById('ovMoreBtn').addEventListener('click', (e) => {
 });
 
 /* ============================================================
-   РАДАР (белый, полупрозрачный)
+   РАДАР
    ============================================================ */
 const minimapCanvas = document.getElementById('minimapCanvas');
 const mmCtx = minimapCanvas.getContext('2d');
@@ -2243,7 +2358,6 @@ function updateMinimap() {
     if (p.inside) drawCross(p.x, p.y, padColor, 5);
   }
 
-  /* HUD-числа */
   const groundY = sampleHeight(camera.position.x, camera.position.z);
   const altM = Math.max(0, camera.position.y - groundY);
   const altEl = document.getElementById('radarAlt');
@@ -2613,9 +2727,6 @@ function openRocketScene(){
   rcResize();
 }
 
-/* ============================================================
-   ФИНАЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ
-   ============================================================ */
 let padSequenceStarted = false;
 function startPadSequence(){
   if (padSequenceStarted) return;
@@ -2694,7 +2805,7 @@ function showCredits(){
         creditsTimer = null;
         mobyStarted = false;
         padSequenceStarted = false;
-        missionSuccessFinished = true; 
+        missionSuccessFinished = true;
 
         const m = document.getElementById('mobyTrack');
         if (m && !m.paused) {
@@ -2807,22 +2918,16 @@ function animate() {
   const hHere = sampleHeightMax(camera.position.x, camera.position.z, 3.0);
 
   if (flightMode) {
-    /* --- ПОЛЁТ: свободное движение по направлению взгляда --- */
-    // Вертикальная составляющая зависит от pitch (наклон вниз/вверх)
     const vertSpeed = Math.sin(pitch) * speed;
     camera.position.y += vertSpeed * dt;
 
-    // Горизонтальная скорость чуть уменьшается при взгляде вниз/вверх
-    // (чтобы полёт вниз не был таким же быстрым по горизонтали, как горизонтальный полёт)
     const cosP = Math.cos(pitch);
     camera.position.x += horizVel.x * (cosP - 1) * dt;
     camera.position.z += horizVel.z * (cosP - 1) * dt;
 
-    /* жёсткая защита снизу */
     const hardMinY = hHere + MIN_CLEARANCE;
     if (camera.position.y < hardMinY) camera.position.y = hardMinY;
 
-    /* ограничение сверху: 2.28 км над рельефом */
     const hardMaxY = hHere + MIN_CLEARANCE + FLIGHT_MAX_ALT;
     if (camera.position.y > hardMaxY) camera.position.y = hardMaxY;
 
@@ -2842,7 +2947,6 @@ function animate() {
       onGround = true;
     } else { onGround = false; }
 
-    /* жёсткая защита снизу */
     const hardMinY = hHere + MIN_CLEARANCE;
     if (camera.position.y < hardMinY) {
       camera.position.y = hardMinY;
@@ -2886,9 +2990,11 @@ function animate() {
   crewItems.forEach((item, i) => {
     if (item.userData.collected) return;
     item.children.forEach(child => {
-      if (child.userData.isCrewLight) child.material.color.setHex(Math.sin(tNow*4 + i) > 0 ? 0xf0e8d8 : 0x6a6258);
-      if (child.userData.isCrewGlow) child.material.opacity = 0.55 + Math.sin(tNow*2 + i)*0.15;
-
+      if (child.userData.isCrewGlow) {
+        const step = Math.floor(tNow * 6.6 + i * 0.137) % 3;
+        const flickerTable = [1.0, 0.4, 0.85];
+        child.material.opacity = flickerTable[step] * 0.85;
+      }
       if (child.userData.isCrewLight || child.userData.isCrewGlowLight) {
         const step = Math.floor(tNow * 6.6 + i * 0.137) % 3;
         const flickerTable = [1.0, 0.4, 0.85];
